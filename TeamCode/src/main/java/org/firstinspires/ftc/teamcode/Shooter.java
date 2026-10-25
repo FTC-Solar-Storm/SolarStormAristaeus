@@ -1,326 +1,413 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
 import java.util.List;
 
+@Config
 public class Shooter {
 
-    // Shooter motors
-    public DcMotorEx motor1;
-    public DcMotorEx motor2;
+    // ==========================================
+    // FTC DASHBOARD: LIVE PIDF CONFIGURATION
+    // ==========================================
 
-    // Limelight and drivetrain
-    private Limelight3A limelight;
-    private TankDrive drive;
-    private Telemetry telemetry;
+    // Replace these placeholders with suitable starting values
+    // for your motor/controller before running the flywheels.
+    public static double FLYWHEEL_P = 0.0;
+    public static double FLYWHEEL_I = 0.0;
+    public static double FLYWHEEL_D = 0.0;
+    public static double FLYWHEEL_F = 0.0;
 
-    // Shooter state
-    private double targetVelocity = 0;
-    public boolean upToSpeed = false;
+    // Minimum change required before PIDF is reapplied.
+    private static final double PIDF_EPSILON = 0.000001;
+
+    // ==========================================
+    // HARDWARE
+    // ==========================================
+
+    private final DcMotorEx flywheel1;
+    private final DcMotorEx flywheel2;
+
+    private final Servo rightShooterHood;
+    private final Servo leftShooterHood;
+
+    private final Limelight3A limelight;
+    private final Telemetry telemetry;
+    private final TankDrive drive;
+
+    // ==========================================
+    // SHOOTER STATE
+    // ==========================================
+
+    private double targetVelocity = 0.0;
 
     private boolean previousDpadUp = false;
     private boolean previousDpadDown = false;
 
-    // Auto-aim state
+    private double lastP = Double.NaN;
+    private double lastI = Double.NaN;
+    private double lastD = Double.NaN;
+    private double lastF = Double.NaN;
+
+    // ==========================================
+    // HOOD CONFIGURATION
+    // ==========================================
+
+    public static double HOOD_STEP = 0.1;
+
+    private static final double MIN_SERVO_POSITION = 0.0;
+    private static final double MAX_SERVO_POSITION = 1.0;
+
+    // ==========================================
+    // AUTO-AIM STATE
+    // ==========================================
+
     private boolean autoAimEnabled = false;
-
-    // BIOBUZZ AprilTag IDs
-    private static final int MIN_TAG_ID = 30;
-    private static final int MAX_TAG_ID = 45;
-
-    // Auto-aim tuning
-    private static final double TURN_KP = 0.035;
-    private static final double MAX_TURN_POWER = 0.35;
-    private static final double MIN_TURN_POWER = 0.08;
-    private static final double TURN_TOLERANCE_DEGREES = 1.5;
-
-    private static final double APPROACH_KP = 0.45;
-    private static final double MAX_FORWARD_POWER = 0.35;
-    private static final double MIN_FORWARD_POWER = 0.10;
-    private static final double STOP_DISTANCE_METERS = 0.50;
+    private boolean previousAutoAimToggle = false;
 
     private int selectedTagId = -1;
-    private double selectedTagDistance = -1;
-    private double selectedTagAngle = 0;
+    private double selectedTagDistance = -1.0;
+    private double selectedTagAngle = 0.0;
+
+    private static final double AUTO_AIM_TURN_GAIN = 0.02;
+    private static final double AUTO_AIM_MAX_TURN = 0.35;
+    private static final double AUTO_AIM_TOLERANCE_DEGREES = 1.0;
+
+    // ==========================================
+    // CONSTRUCTOR
+    // ==========================================
 
     public Shooter(
             HardwareMap hardwareMap,
             Telemetry telemetry,
             TankDrive drive
     ) {
-
         this.telemetry = telemetry;
         this.drive = drive;
 
-        // Initialize both flywheel motors.
-        motor1 = hardwareMap.get(DcMotorEx.class, "flywheel1");
-        motor2 = hardwareMap.get(DcMotorEx.class, "flywheel2");
-
-        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
-        motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        motor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        // Configure velocity PIDF.
-        PIDFCoefficients pidf = new PIDFCoefficients(
-                10,
-                0,
-                0,
-                12
+        // Shooter motors
+        flywheel1 = hardwareMap.get(
+                DcMotorEx.class,
+                "rightShooter"
         );
 
-        motor1.setPIDFCoefficients(
-                DcMotor.RunMode.RUN_USING_ENCODER,
-                pidf
+        flywheel2 = hardwareMap.get(
+                DcMotorEx.class,
+                "leftShooter"
         );
 
-        motor2.setPIDFCoefficients(
-                DcMotor.RunMode.RUN_USING_ENCODER,
-                pidf
+        // Velocity control
+        flywheel1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheel2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // Hood servos
+        rightShooterHood = hardwareMap.get(
+                Servo.class,
+                "rightShooterHood"
         );
 
-        // Initialize Limelight 3A.
+        leftShooterHood = hardwareMap.get(
+                Servo.class,
+                "leftShooterHood"
+        );
+
+        rightShooterHood.setPosition(1.0);
+        leftShooterHood.setPosition(0.0);
+
+        // Limelight
         limelight = hardwareMap.get(
                 Limelight3A.class,
                 "limelight"
         );
 
-        // Pipeline 0 must be configured for BIOBUZZ AprilTags.
         limelight.pipelineSwitch(0);
         limelight.start();
+
+        // Apply the initial Dashboard PIDF values.
+        applyPIDFIfChanged();
     }
 
-    // --------------------------------------------------
-    // SHOOTER CONTROL
-    // --------------------------------------------------
+    // ==========================================
+    // LIVE PIDF TUNING
+    // ==========================================
 
     /**
-     * Adjusts the target flywheel velocity using the D-pad.
-     * Call repeatedly while the shooter is enabled.
+     * Applies PIDF values only when they change in FTC Dashboard.
+     * The motor controller receives the new coefficients without
+     * repeatedly writing the same values every loop.
+     */
+    public void applyPIDFIfChanged() {
+
+        if (Double.isNaN(FLYWHEEL_P)
+                || Double.isNaN(FLYWHEEL_I)
+                || Double.isNaN(FLYWHEEL_D)
+                || Double.isNaN(FLYWHEEL_F)
+                || Double.isInfinite(FLYWHEEL_P)
+                || Double.isInfinite(FLYWHEEL_I)
+                || Double.isInfinite(FLYWHEEL_D)
+                || Double.isInfinite(FLYWHEEL_F)) {
+
+            telemetry.addLine("Invalid PIDF values; update rejected.");
+            return;
+        }
+
+        boolean changed =
+                Math.abs(FLYWHEEL_P - lastP) > PIDF_EPSILON
+                        || Math.abs(FLYWHEEL_I - lastI) > PIDF_EPSILON
+                        || Math.abs(FLYWHEEL_D - lastD) > PIDF_EPSILON
+                        || Math.abs(FLYWHEEL_F - lastF) > PIDF_EPSILON;
+
+        if (!changed) {
+            return;
+        }
+
+        PIDFCoefficients pidf = new PIDFCoefficients(
+                FLYWHEEL_P,
+                FLYWHEEL_I,
+                FLYWHEEL_D,
+                FLYWHEEL_F
+        );
+
+        try {
+            flywheel1.setPIDFCoefficients(
+                    DcMotor.RunMode.RUN_USING_ENCODER,
+                    pidf
+            );
+
+            flywheel2.setPIDFCoefficients(
+                    DcMotor.RunMode.RUN_USING_ENCODER,
+                    pidf
+            );
+
+            lastP = FLYWHEEL_P;
+            lastI = FLYWHEEL_I;
+            lastD = FLYWHEEL_D;
+            lastF = FLYWHEEL_F;
+
+            telemetry.addLine("Shooter PIDF updated.");
+
+        } catch (UnsupportedOperationException e) {
+            telemetry.addLine(
+                    "This motor controller does not support PIDF updates."
+            );
+        }
+    }
+
+    // ==========================================
+    // SHOOTER VELOCITY CONTROL
+    // ==========================================
+
+    /**
+     * Adjusts target velocity by 50 ticks/sec per button press.
+     * Call once per OpMode loop.
      */
     public void update(boolean dpadUp, boolean dpadDown) {
 
         if (dpadUp && !previousDpadUp) {
-            targetVelocity += 100;
+            targetVelocity += 50.0;
         }
 
         if (dpadDown && !previousDpadDown) {
-            targetVelocity = Math.max(0, targetVelocity - 100);
+            targetVelocity -= 50.0;
         }
+
+        targetVelocity = Math.max(0.0, targetVelocity);
 
         previousDpadUp = dpadUp;
         previousDpadDown = dpadDown;
 
-        // Command both flywheels to the same target velocity.
-        motor1.setVelocity(targetVelocity);
-        motor2.setVelocity(targetVelocity);
+        flywheel1.setVelocity(targetVelocity);
+        flywheel2.setVelocity(targetVelocity);
 
-        double velocity1 = motor1.getVelocity();
-        double velocity2 = motor2.getVelocity();
-
-        upToSpeed = targetVelocity > 0
-                && Math.abs(velocity1 - targetVelocity) < 50
-                && Math.abs(velocity2 - targetVelocity) < 50;
+        // Detect Dashboard changes while the shooter is running.
+        applyPIDFIfChanged();
     }
+
+    public void stop() {
+        targetVelocity = 0.0;
+
+        flywheel1.setVelocity(0.0);
+        flywheel2.setVelocity(0.0);
+    }
+
+    public void slowSpeed() {
+        targetVelocity = Math.max(0.0, targetVelocity - 50.0);
+
+        flywheel1.setVelocity(targetVelocity);
+        flywheel2.setVelocity(targetVelocity);
+    }
+
+    // ==========================================
+    // VELOCITY GETTERS
+    // ==========================================
 
     public double getTargetVelocity() {
         return targetVelocity;
     }
 
-    public double getCurrentVelocity() {
-        return (
-                motor1.getVelocity() + motor2.getVelocity()
-        ) / 2.0;
-    }
-
     public double getFlywheel1Velocity() {
-        return motor1.getVelocity();
+        return flywheel1.getVelocity();
     }
 
     public double getFlywheel2Velocity() {
-        return motor2.getVelocity();
+        return flywheel2.getVelocity();
     }
 
-    public void slowSpeed() {
-        targetVelocity = 200;
-        motor1.setVelocity(targetVelocity);
-        motor2.setVelocity(targetVelocity);
+    public double getCurrentVelocity() {
+        return (
+                flywheel1.getVelocity()
+                        + flywheel2.getVelocity()
+        ) / 2.0;
     }
 
-    /**
-     * Stops both flywheels and resets the target velocity.
-     */
-    public void stop() {
-        targetVelocity = 0;
-        upToSpeed = false;
+    // ==========================================
+    // HOOD CONTROLS
+    // ==========================================
 
-        motor1.setVelocity(0);
-        motor2.setVelocity(0);
-    }
+    public void adjustRightHood(
+            boolean increase,
+            boolean decrease
+    ) {
+        double position = rightShooterHood.getPosition();
 
-    // --------------------------------------------------
-    // LIMELIGHT AUTO-AIM
-    // --------------------------------------------------
-
-    /**
-     * Toggles auto-aim and approaches the closest visible
-     * BIOBUZZ AprilTag.
-     *
-     * @param togglePressed True when Gamepad 2 A is pressed.
-     * @return True when auto-aim is handling the drivetrain.
-     */
-    public boolean updateAutoAim(boolean togglePressed) {
-
-        if (togglePressed) {
-            autoAimEnabled = !autoAimEnabled;
-
-            if (!autoAimEnabled) {
-                stopDrive();
-                return false;
-            }
+        if (increase) {
+            position += HOOD_STEP;
         }
 
+        if (decrease) {
+            position -= HOOD_STEP;
+        }
+
+        position = clamp(
+                position,
+                MIN_SERVO_POSITION,
+                MAX_SERVO_POSITION
+        );
+
+        rightShooterHood.setPosition(position);
+    }
+
+    public void adjustLeftHood(
+            boolean increase,
+            boolean decrease
+    ) {
+        double position = leftShooterHood.getPosition();
+
+        if (increase) {
+            position += HOOD_STEP;
+        }
+
+        if (decrease) {
+            position -= HOOD_STEP;
+        }
+
+        position = clamp(
+                position,
+                MIN_SERVO_POSITION,
+                MAX_SERVO_POSITION
+        );
+
+        leftShooterHood.setPosition(position);
+    }
+
+    public double getRightHoodPosition() {
+        return rightShooterHood.getPosition();
+    }
+
+    public double getLeftHoodPosition() {
+        return leftShooterHood.getPosition();
+    }
+
+    // ==========================================
+    // LIMELIGHT AUTO-AIM
+    // ==========================================
+
+    public void updateAutoAim(boolean togglePressed) {
+
+        if (togglePressed && !previousAutoAimToggle) {
+            autoAimEnabled = !autoAimEnabled;
+        }
+
+        previousAutoAimToggle = togglePressed;
+
         if (!autoAimEnabled) {
-            return false;
+            return;
         }
 
         LLResult result = limelight.getLatestResult();
 
         if (result == null || !result.isValid()) {
             selectedTagId = -1;
-            selectedTagDistance = -1;
-            stopDrive();
-
-            telemetry.addLine("Auto-aim: Waiting for Limelight");
-            return true;
+            selectedTagDistance = -1.0;
+            selectedTagAngle = 0.0;
+            return;
         }
 
-        List<LLResultTypes.FiducialResult> tags =
+        List<LLResultTypes.FiducialResult> fiducials =
                 result.getFiducialResults();
 
-        LLResultTypes.FiducialResult closestTag = null;
-        double closestDistance = Double.POSITIVE_INFINITY;
+        selectedTagId = -1;
+        selectedTagDistance = -1.0;
+        selectedTagAngle = 0.0;
 
-        // Find the nearest valid BIOBUZZ tag.
-        for (LLResultTypes.FiducialResult tag : tags) {
+        for (LLResultTypes.FiducialResult fiducial : fiducials) {
 
-            int id = tag.getFiducialId();
+            int id = fiducial.getFiducialId();
 
-            if (id < MIN_TAG_ID || id > MAX_TAG_ID) {
-                continue;
-            }
+            if (id >= 30 && id <= 45) {
 
-            Pose3D targetPose = tag.getTargetPoseCameraSpace();
+                Position position =
+                        fiducial.getTargetPoseCameraSpace().getPosition();
 
-            if (targetPose == null) {
-                continue;
-            }
+                selectedTagDistance = Math.sqrt(
+                        position.x * position.x
+                                + position.y * position.y
+                                + position.z * position.z
+                );
 
-            Position position =
-                    targetPose.getPosition().toUnit(DistanceUnit.METER);
+                selectedTagAngle = fiducial.getTargetXDegrees();
+                selectedTagId = id;
 
-            double distance = Math.sqrt(
-                    position.x * position.x
-                            + position.y * position.y
-                            + position.z * position.z
-            );
-
-            if (!Double.isFinite(distance) || distance <= 0) {
-                continue;
-            }
-
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestTag = tag;
+                break;
             }
         }
 
-        // No suitable AprilTag found.
-        if (closestTag == null) {
-            selectedTagId = -1;
-            selectedTagDistance = -1;
-            stopDrive();
+        if (selectedTagId != -1) {
 
-            telemetry.addLine("Auto-aim: No BIOBUZZ tag found");
-            return true;
-        }
+            double turn = 0.0;
 
-        selectedTagId = closestTag.getFiducialId();
-        selectedTagDistance = closestDistance;
-        selectedTagAngle = closestTag.getTargetXDegrees();
+            if (Math.abs(selectedTagAngle)
+                    > AUTO_AIM_TOLERANCE_DEGREES) {
 
-        double tx = selectedTagAngle;
-
-        // Turn toward the target.
-        // Reverse this sign if the robot turns away from the tag.
-        double turnPower = -tx * TURN_KP;
-
-        turnPower = clip(
-                turnPower,
-                -MAX_TURN_POWER,
-                MAX_TURN_POWER
-        );
-
-        if (Math.abs(tx) > TURN_TOLERANCE_DEGREES) {
-
-            // Align before moving forward.
-            drive.setDrivePowers(
-                    new PoseVelocity2d(
-                            new Vector2d(0, 0),
-                            turnPower
-                    )
-            );
-
-        } else if (closestDistance > STOP_DISTANCE_METERS) {
-
-            // Approach the tag when approximately aligned.
-            double forwardPower =
-                    (closestDistance - STOP_DISTANCE_METERS)
-                            * APPROACH_KP;
-
-            forwardPower = clip(
-                    forwardPower,
-                    MIN_FORWARD_POWER,
-                    MAX_FORWARD_POWER
-            );
+                turn = clamp(
+                        selectedTagAngle * AUTO_AIM_TURN_GAIN,
+                        -AUTO_AIM_MAX_TURN,
+                        AUTO_AIM_MAX_TURN
+                );
+            }
 
             drive.setDrivePowers(
                     new PoseVelocity2d(
-                            new Vector2d(forwardPower, 0),
-                            0
+                            new Vector2d(0.0, 0.0),
+                            turn
                     )
             );
-
-        } else {
-
-            // Stop at the configured distance.
-            stopDrive();
         }
-
-        return true;
-    }
-
-    public boolean isAutoAimEnabled() {
-        return autoAimEnabled;
     }
 
     public int getSelectedTagId() {
@@ -335,40 +422,38 @@ public class Shooter {
         return selectedTagAngle;
     }
 
-    /**
-     * Stops the drivetrain.
-     */
-    private void stopDrive() {
-        drive.setDrivePowers(
-                new PoseVelocity2d(
-                        new Vector2d(0, 0),
-                        0
-                )
-        );
+    public boolean isAutoAimEnabled() {
+        return autoAimEnabled;
     }
 
-    /**
-     * Shuts down the Limelight and shooter.
-     * Call this once when the OpMode ends.
-     */
+    // ==========================================
+    // UTILITIES
+    // ==========================================
+
+    private double clamp(
+            double value,
+            double min,
+            double max
+    ) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    // ==========================================
+    // SHUTDOWN
+    // ==========================================
+
     public void shutdown() {
         stop();
-        autoAimEnabled = false;
-        stopDrive();
 
-        if (limelight != null) {
-            limelight.stop();
+        limelight.stop();
+
+        if (drive != null) {
+            drive.setDrivePowers(
+                    new PoseVelocity2d(
+                            new Vector2d(0.0, 0.0),
+                            0.0
+                    )
+            );
         }
-    }
-
-    private double clip(
-            double value,
-            double minimum,
-            double maximum
-    ) {
-        return Math.max(
-                minimum,
-                Math.min(maximum, value)
-        );
     }
 }
