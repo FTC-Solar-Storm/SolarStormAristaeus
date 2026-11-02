@@ -3,135 +3,126 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.Pose2d;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name = "Shooter Test", group = "Test")
+@TeleOp(name = "Shooter Test")
 public class shootertest extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
-        // Send telemetry to both the Driver Station and FTC Dashboard
         telemetry = new MultipleTelemetry(
                 telemetry,
                 FtcDashboard.getInstance().getTelemetry()
         );
 
-        // Create the drive object required by your current Shooter constructor
-        TankDrive drive = new TankDrive(
-                hardwareMap,
-                new Pose2d(0, 0, 0)
-        );
-
-        // Initialize shooter using your existing Shooter class
+        TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
 
-        // Button state tracking for single-press controls
-        boolean previousDpadUp = false;
-        boolean previousDpadDown = false;
-        boolean previousA = false;
-        boolean previousB = false;
-        boolean previousX = false;
-        boolean previousY = false;
+        int selectedPIDF = 0;
 
-        telemetry.addLine("Shooter Test Ready");
-        telemetry.addLine("Right Trigger: Run shooter");
-        telemetry.addLine("D-pad Up/Down: Adjust target velocity");
-        telemetry.addLine("A/B: Adjust right hood");
-        telemetry.addLine("X/Y: Adjust left hood");
-        telemetry.update();
+        boolean lastLeft = false;
+        boolean lastRight = false;
+        boolean lastA = false;
+        boolean lastB = false;
 
         waitForStart();
 
-        try {
-            while (opModeIsActive()) {
+        while (opModeIsActive()) {
 
-                // Read controls
-                boolean dpadUp = gamepad1.dpad_up;
-                boolean dpadDown = gamepad1.dpad_down;
-
-                boolean a = gamepad1.a;
-                boolean b = gamepad1.b;
-                boolean x = gamepad1.x;
-                boolean y = gamepad1.y;
-
-                boolean shooterRunning = gamepad1.right_trigger > 0.1;
-
-                // Adjust target velocity by 50 ticks/sec per button press
-                shooter.update(
-                        dpadUp && !previousDpadUp,
-                        dpadDown && !previousDpadDown
-                );
-
-                // Run shooter while right trigger is held
-                if (shooterRunning) {
-                    // shooter.update() already controls the flywheel target velocity
-                } else {
-                    shooter.stop();
-                }
-
-                // Adjust right hood
-                shooter.adjustRightHood(
-                        a && !previousA,
-                        b && !previousB
-                );
-
-                // Adjust left hood
-                shooter.adjustLeftHood(
-                        x && !previousX,
-                        y && !previousY
-                );
-
-                // Save button states
-                previousDpadUp = dpadUp;
-                previousDpadDown = dpadDown;
-
-                previousA = a;
-                previousB = b;
-                previousX = x;
-                previousY = y;
-
-                // ==========================================
-                // FTC DASHBOARD GRAPHABLE TELEMETRY
-                // ==========================================
-
-                telemetry.addData(
-                        "Shooter/Target Velocity",
-                        shooter.getTargetVelocity()
-                );
-
-                telemetry.addData(
-                        "Shooter/Right Flywheel Velocity",
-                        shooter.getFlywheel1Velocity()
-                );
-
-                telemetry.addData(
-                        "Shooter/Left Flywheel Velocity",
-                        shooter.getFlywheel2Velocity()
-                );
-
-                telemetry.addData(
-                        "Shooter/Right Hood Position",
-                        shooter.getRightHoodPosition()
-                );
-
-                telemetry.addData(
-                        "Shooter/Left Hood Position",
-                        shooter.getLeftHoodPosition()
-                );
-
-                telemetry.addData(
-                        "Shooter/Running",
-                        shooterRunning
-                );
-
-                telemetry.update();
+            // FLYWHEEL: GAMEPAD 1
+            if (gamepad1.right_trigger > 0.1) {
+                shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
+            } else {
+                shooter.stop();
             }
 
-        } finally {
-            shooter.shutdown();
+            // RIGHT HOOD: GAMEPAD 1
+            shooter.adjustRightHood(gamepad1.y, gamepad1.x);
+
+            // LEFT HOOD: GAMEPAD 2
+            shooter.adjustLeftHood(gamepad2.y, gamepad2.x);
+
+            // AUTO-AIM: GAMEPAD 1 B
+            shooter.updateAutoAim(gamepad1.b);
+
+            // SELECT PIDF: GAMEPAD 2 D-PAD
+            if (gamepad2.dpad_right && !lastRight) {
+                selectedPIDF = (selectedPIDF + 1) % 4;
+            }
+
+            if (gamepad2.dpad_left && !lastLeft) {
+                selectedPIDF = (selectedPIDF + 3) % 4;
+            }
+
+            lastRight = gamepad2.dpad_right;
+            lastLeft = gamepad2.dpad_left;
+
+            // CHANGE PIDF: GAMEPAD 2 A/B
+            double change = 0;
+
+            if (gamepad2.a && !lastA) change = -0.1;
+            if (gamepad2.b && !lastB) change = 0.1;
+
+            lastA = gamepad2.a;
+            lastB = gamepad2.b;
+
+            if (change != 0) {
+                switch (selectedPIDF) {
+                    case 0:
+                        Shooter.FLYWHEEL_P = Math.max(0, Shooter.FLYWHEEL_P + change);
+                        break;
+                    case 1:
+                        Shooter.FLYWHEEL_I = Math.max(0, Shooter.FLYWHEEL_I + change);
+                        break;
+                    case 2:
+                        Shooter.FLYWHEEL_D = Math.max(0, Shooter.FLYWHEEL_D + change);
+                        break;
+                    case 3:
+                        Shooter.FLYWHEEL_F = Math.max(0, Shooter.FLYWHEEL_F + change);
+                        break;
+                }
+
+                shooter.applyPIDF();
+            }
+
+            // TELEMETRY
+            telemetry.addLine("========== SHOOTER ==========");
+            telemetry.addData("Enabled", gamepad1.right_trigger > 0.1);
+            telemetry.addData("Target Velocity", shooter.getTargetVelocity());
+            telemetry.addData("Flywheel 1 Velocity", shooter.getFlywheel1Velocity());
+            telemetry.addData("Flywheel 2 Velocity", shooter.getFlywheel2Velocity());
+            telemetry.addData("Average Velocity", shooter.getCurrentVelocity());
+
+            telemetry.addLine("========== PIDF ==========");
+            telemetry.addData("Selected", new String[]{"P", "I", "D", "F"}[selectedPIDF]);
+            telemetry.addData("P", Shooter.FLYWHEEL_P);
+            telemetry.addData("I", Shooter.FLYWHEEL_I);
+            telemetry.addData("D", Shooter.FLYWHEEL_D);
+            telemetry.addData("F", Shooter.FLYWHEEL_F);
+
+            telemetry.addLine("========== HOODS ==========");
+            telemetry.addData("Right Hood Position", shooter.getRightHoodPosition());
+            telemetry.addData("Left Hood Position", shooter.getLeftHoodPosition());
+
+            telemetry.addLine("========== AUTO AIM ==========");
+            telemetry.addData("Enabled", shooter.isAutoAimEnabled());
+            telemetry.addData("Tag ID", shooter.getSelectedTagId());
+            telemetry.addData("Tag Distance", shooter.getSelectedTagDistance());
+            telemetry.addData("Tag Angle", shooter.getSelectedTagAngle());
+
+            telemetry.addLine("========== CONTROLS ==========");
+            telemetry.addData("Flywheel", "Gamepad 1: Hold RT");
+            telemetry.addData("Target Speed", "Gamepad 1: D-pad Up/Down");
+            telemetry.addData("Right Hood", "Gamepad 1: Y/X");
+            telemetry.addData("Left Hood", "Gamepad 2: Y/X");
+            telemetry.addData("Auto Aim", "Gamepad 1: B");
+            telemetry.addData("Select PIDF", "Gamepad 2: D-pad Left/Right");
+            telemetry.addData("Adjust PIDF", "Gamepad 2: B increases, A decreases");
+
+            telemetry.update();
         }
+
+        shooter.shutdown();
     }
 }
