@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 
@@ -30,11 +31,22 @@ public class ColorVision {
     private final YellowPipeline pipeline;
 
     private boolean autoPickup = false;
+    private volatile boolean cameraOpened = false;
 
+    // CAMERA SETTINGS
+    private static final int CAMERA_WIDTH = 1280;
+    private static final int CAMERA_HEIGHT = 720;
+    private static final int CAMERA_FPS = 30;
+
+    // AUTO PICKUP SETTINGS
     private static final double TURN_MULTIPLIER = 0.025;
     private static final double MAX_TURN_POWER = 0.5;
     private static final double FORWARD_POWER = 0.5;
     private static final double ALIGNMENT_THRESHOLD = 5.0;
+
+    // Assumed horizontal field of view.
+    // Calibrate this value for your camera if needed.
+    private static final double HORIZONTAL_FOV = 69.0;
 
     public ColorVision(HardwareMap hardwareMap) {
 
@@ -46,7 +58,6 @@ public class ColorVision {
                         hardwareMap.appContext.getPackageName()
                 );
 
-        // Correct webcam initialization.
         WebcamName cameraName = hardwareMap.get(
                 WebcamName.class,
                 "Webcam 1"
@@ -65,16 +76,33 @@ public class ColorVision {
 
                     @Override
                     public void onOpened() {
+
+                        cameraOpened = true;
+
                         webcam.startStreaming(
-                                640,
-                                480,
+                                CAMERA_WIDTH,
+                                CAMERA_HEIGHT,
                                 OpenCvCameraRotation.UPRIGHT
+                        );
+
+                        FtcDashboard.getInstance().startCameraStream(
+                                webcam,
+                                CAMERA_FPS
+                        );
+
+                        System.out.println(
+                                "C920 CAMERA OPENED - DASHBOARD STREAM STARTED"
                         );
                     }
 
                     @Override
                     public void onError(int errorCode) {
-                        // Camera failed to open.
+
+                        cameraOpened = false;
+
+                        System.out.println(
+                                "CAMERA ERROR: " + errorCode
+                        );
                     }
                 }
         );
@@ -82,11 +110,6 @@ public class ColorVision {
 
     /**
      * Handles automatic pickup.
-     *
-     * @param togglePressed True when the toggle button is pressed.
-     * @param drive The robot's drive subsystem.
-     * @param intake The robot's intake subsystem.
-     * @return True if automatic pickup is handling the robot.
      */
     public boolean updateAutoPickup(
             boolean togglePressed,
@@ -94,135 +117,119 @@ public class ColorVision {
             Intake intake
     ) {
 
-        // Toggle automatic pickup.
         if (togglePressed) {
+
             autoPickup = !autoPickup;
 
-            // Stop the robot when automatic pickup is disabled.
             if (!autoPickup) {
                 stopPickup(drive, intake);
                 return true;
             }
         }
 
-        // Automatic pickup is disabled.
         if (!autoPickup) {
             return false;
         }
 
-        // Stop if the target disappears.
         if (!isDetected()) {
+
             autoPickup = false;
+
             stopPickup(drive, intake);
+
             return true;
         }
 
-        // Calculate the target's horizontal angle.
         double offsetAngle = getOffsetAngle();
 
-        // Convert the angle into turning power.
+        double forwardPower;
         double turnPower = offsetAngle * TURN_MULTIPLIER;
 
-        // Limit the turning power.
-        turnPower = Math.max(
-                -MAX_TURN_POWER,
-                Math.min(MAX_TURN_POWER, turnPower)
-        );
-
-        // Turn toward the target until aligned.
-        if (Math.abs(offsetAngle) > ALIGNMENT_THRESHOLD) {
-
-            drive.setDrivePowers(
-                    new PoseVelocity2d(
-                            new Vector2d(0, 0),
-                            turnPower
-                    )
-            );
-
+        // If the ball is very far off to the side (> 25 deg), turn on spot first
+        if (Math.abs(offsetAngle) > 25.0) {
+            forwardPower = 0.0;
+            double magnitude = Math.max(0.20, Math.abs(turnPower));
+            turnPower = Math.copySign(magnitude, turnPower);
+            turnPower = Math.max(-MAX_TURN_POWER, Math.min(MAX_TURN_POWER, turnPower));
         } else {
-
-            // Drive forward when aligned.
-            drive.setDrivePowers(
-                    new PoseVelocity2d(
-                            new Vector2d(FORWARD_POWER, 0),
-                            0
-                    )
-            );
+            // Ball in front (<= 25 deg): Drive forward AND steer toward ball simultaneously!
+            // Moving forward eliminates static friction for smooth, tweak-free steering.
+            forwardPower = FORWARD_POWER;
+            turnPower = Math.max(-0.4, Math.min(0.4, turnPower));
         }
 
-        // Run the intake while approaching the target.
-        intake.intakeMotor.setPower(1.0);
-        intake.left.setPower(-1.0);
-        intake.right.setPower(1.0);
+        drive.setDrivePowers(
+                new PoseVelocity2d(
+                        new Vector2d(forwardPower, 0),
+                        turnPower
+                )
+        );
+
+        if (intake != null) {
+            if (intake.intakeMotor != null) intake.intakeMotor.setPower(1.0);
+            if (intake.left != null) intake.left.setPower(-1.0);
+            if (intake.right != null) intake.right.setPower(1.0);
+        }
 
         return true;
     }
 
     /**
-     * Stops the drive and intake.
+     * Stops the drive and intake safely without null pointer exceptions.
      */
     private void stopPickup(TankDrive drive, Intake intake) {
 
-        drive.setDrivePowers(
-                new PoseVelocity2d(
-                        new Vector2d(0, 0),
-                        0
-                )
-        );
+        if (drive != null) {
+            drive.setDrivePowers(
+                    new PoseVelocity2d(
+                            new Vector2d(0, 0),
+                            0
+                    )
+            );
+        }
 
-        intake.intakeMotor.setPower(0);
-        intake.left.setPower(0);
-        intake.right.setPower(0);
-        intake.transfer.setPower(0);
+        if (intake != null) {
+            if (intake.intakeMotor != null) intake.intakeMotor.setPower(0);
+            if (intake.left != null) intake.left.setPower(0);
+            if (intake.right != null) intake.right.setPower(0);
+            if (intake.transfer != null) intake.transfer.setPower(0);
+        }
     }
 
-    /**
-     * Returns whether automatic pickup is enabled.
-     */
     public boolean isAutoPickupActive() {
         return autoPickup;
     }
 
-    /**
-     * Returns whether a yellow object is detected.
-     */
+    public boolean isCameraOpened() {
+        return cameraOpened;
+    }
+
     public boolean isDetected() {
         return pipeline.isDetected();
     }
 
-    /**
-     * Returns the detected object's center X coordinate.
-     */
     public int getCenterX() {
         return pipeline.getCenterX();
     }
 
-    /**
-     * Returns the detected object's center Y coordinate.
-     */
     public int getCenterY() {
         return pipeline.getCenterY();
     }
 
-    /**
-     * Returns the detected object's width.
-     */
     public int getWidth() {
         return pipeline.getWidth();
     }
 
-    /**
-     * Returns the detected object's height.
-     */
     public int getHeight() {
         return pipeline.getHeight();
     }
 
+    public long getFrameCount() {
+        return webcam != null ? webcam.getFrameCount() : 0;
+    }
+
     /**
-     * Estimates the horizontal angle between the target
-     * and the center of the camera image.
-     *
-     * Assumes a 60-degree horizontal field of view.
+     * Calculates the horizontal angle of the detected object.
      */
     public double getOffsetAngle() {
 
@@ -230,19 +237,31 @@ public class ColorVision {
             return 0;
         }
 
-        return (getCenterX() - 320) / 640.0 * 60.0;
+        double imageWidth = pipeline.getImageWidth();
+
+        if (imageWidth <= 0) {
+            return 0;
+        }
+
+        return (getCenterX() - imageWidth / 2.0)
+                / imageWidth * HORIZONTAL_FOV;
     }
 
     /**
-     * Stops the camera and disables automatic pickup.
+     * Stops the camera and automatic pickup.
      */
     public void stop() {
 
         autoPickup = false;
 
-        if (webcam != null) {
+        FtcDashboard.getInstance().stopCameraStream();
+
+        if (webcam != null && cameraOpened) {
+
             webcam.stopStreaming();
             webcam.closeCameraDevice();
+
+            cameraOpened = false;
         }
     }
 
@@ -264,17 +283,21 @@ public class ColorVision {
         private volatile int width = 0;
         private volatile int height = 0;
 
+        private volatile int imageWidth = CAMERA_WIDTH;
+        private volatile int imageHeight = CAMERA_HEIGHT;
+
         @Override
         public Mat processFrame(Mat input) {
 
-            // Convert the camera image to HSV.
+            imageWidth = input.cols();
+            imageHeight = input.rows();
+
             Imgproc.cvtColor(
                     input,
                     hsv,
                     Imgproc.COLOR_RGB2HSV
             );
 
-            // Threshold for yellow.
             Core.inRange(
                     hsv,
                     new Scalar(18, 100, 60),
@@ -282,7 +305,6 @@ public class ColorVision {
                     mask
             );
 
-            // Find yellow contours.
             contours.clear();
 
             Imgproc.findContours(
@@ -293,7 +315,6 @@ public class ColorVision {
                     Imgproc.CHAIN_APPROX_SIMPLE
             );
 
-            // Find the largest contour.
             double largestArea = 0;
             Rect largestRect = null;
 
@@ -302,6 +323,7 @@ public class ColorVision {
                 double area = Imgproc.contourArea(contour);
 
                 if (area > largestArea) {
+
                     largestArea = area;
                     largestRect = Imgproc.boundingRect(contour);
                 }
@@ -309,7 +331,8 @@ public class ColorVision {
                 contour.release();
             }
 
-            // Accept objects with an area greater than 500 pixels.
+            contours.clear();
+
             if (largestRect != null && largestArea > 500) {
 
                 detected = true;
@@ -320,7 +343,6 @@ public class ColorVision {
                 width = largestRect.width;
                 height = largestRect.height;
 
-                // Draw the bounding box.
                 Imgproc.rectangle(
                         input,
                         largestRect,
@@ -328,7 +350,6 @@ public class ColorVision {
                         2
                 );
 
-                // Draw the center of the detected object.
                 Imgproc.circle(
                         input,
                         new Point(centerX, centerY),
@@ -347,13 +368,13 @@ public class ColorVision {
                 height = 0;
             }
 
-            // Draw a vertical line through the center of the image.
+            // Center alignment line.
             Imgproc.line(
                     input,
-                    new Point(320, 0),
-                    new Point(320, 480),
+                    new Point(imageWidth / 2.0, 0),
+                    new Point(imageWidth / 2.0, imageHeight),
                     new Scalar(255, 255, 255),
-                    1
+                    2
             );
 
             return input;
@@ -377,6 +398,10 @@ public class ColorVision {
 
         public int getHeight() {
             return height;
+        }
+
+        public int getImageWidth() {
+            return imageWidth;
         }
     }
 }

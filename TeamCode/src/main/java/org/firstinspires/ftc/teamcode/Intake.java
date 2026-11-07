@@ -31,6 +31,7 @@ public final class Intake {
 
 
     public CRServo right, left;
+    public Servo gate;
 
     // ==================== CONSTRUCTOR ====================
     public Intake(HardwareMap hardwareMap, Telemetry telemetry) {
@@ -40,7 +41,20 @@ public final class Intake {
         right = hardwareMap.get(CRServo.class, "rightIntakeServo");
         left = hardwareMap.get(CRServo.class, "leftIntakeServo");
         intakeMotor = hardwareMap.get(DcMotorEx.class, "intake");
+        gate = hardwareMap.get(Servo.class, "gate");
 
 
     }
+
+    public void moveGate(boolean gatebutton){
+        if (gatebutton) {
+
+            if (gate.getPosition() == 0.35) {
+                gate.setPosition(0);
+            } else {
+                gate.setPosition(0.35);
+            }
+        }
+    }
+
 }
