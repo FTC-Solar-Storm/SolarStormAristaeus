@@ -181,6 +181,106 @@ public class Shooter {
     public double getSelectedTagAngle() { return selectedTagAngle; }
     public boolean isAutoAimEnabled() { return autoAimEnabled; }
 
+    // =======================================================
+    // AUTO ALIGNINGNGNGNGNGNGNGNNG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // =======================================================
+
+    public enum HiveTarget {
+        BLUE_HIVE_TOP(13.0, 13.0, "Blue Hive Top"),
+        RED_HIVE_TOP(13.0, -13.0, "Red Hive Top"),
+        RED_HIVE_BOTTOM(-13.0, -13.0, "Red Hive Bottom"),
+        BLUE_HIVE_BOTTOM(-13.0, 13.0, "Blue Hive Bottom");
+
+        public final double x;
+        public final double y;
+        public final String name;
+
+        HiveTarget(double x, double y, String name) {
+            this.x = x;
+            this.y = y;
+            this.name = name;
+        }
+    }
+
+    private boolean hiveAlignEnabled = false;
+    private HiveTarget selectedHiveTarget = HiveTarget.BLUE_HIVE_TOP;
+    private double hiveHeadingErrorDeg = 0.0;
+    private double hiveDistanceInches = 0.0;
+    private boolean isHiveAligned = false;
+
+
+    public boolean updateHiveAutoAlign(boolean togglePressed, boolean cycleTargetPressed) {
+        if (togglePressed) {
+            hiveAlignEnabled = !hiveAlignEnabled;
+        }
+
+        if (cycleTargetPressed) {
+            cycleHiveTarget();
+        }
+
+        if (!hiveAlignEnabled || drive == null) {
+            isHiveAligned = false;
+            return false;
+        }
+
+        drive.updatePoseEstimate();
+        com.acmerobotics.roadrunner.Pose2d currentPose = drive.localizer.getPose();
+
+        double rx = currentPose.position.x;
+        double ry = currentPose.position.y;
+        double rHeadingRad = currentPose.heading.toDouble();
+
+        double dx = selectedHiveTarget.x - rx;
+        double dy = selectedHiveTarget.y - ry;
+
+        hiveDistanceInches = Math.hypot(dx, dy);
+
+        // Face front at target angle; shooter in BACK = targetAngle + PI radians (180 deg)
+        double angleToTargetRad = Math.atan2(dy, dx);
+        double targetShooterHeadingRad = angleToTargetRad + Math.PI;
+
+        double headingErrorRad = targetShooterHeadingRad - rHeadingRad;
+        while (headingErrorRad > Math.PI) headingErrorRad -= 2.0 * Math.PI;
+        while (headingErrorRad < -Math.PI) headingErrorRad += 2.0 * Math.PI;
+
+        hiveHeadingErrorDeg = Math.toDegrees(headingErrorRad);
+
+        if (Math.abs(hiveHeadingErrorDeg) > 1.0) {
+            isHiveAligned = false;
+            double turnPower = hiveHeadingErrorDeg * 0.025;
+
+            // Minimum power floor to overcome static drivetrain friction
+            double magnitude = Math.max(0.18, Math.abs(turnPower));
+            turnPower = Math.copySign(magnitude, turnPower);
+            turnPower = clamp(turnPower, -0.45, 0.45);
+
+            drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), turnPower));
+        } else {
+            isHiveAligned = true;
+            drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0));
+        }
+
+        return true;
+    }
+
+    public void cycleHiveTarget() {
+        HiveTarget[] targets = HiveTarget.values();
+        int nextOrdinal = (selectedHiveTarget.ordinal() + 1) % targets.length;
+        selectedHiveTarget = targets[nextOrdinal];
+    }
+
+    public void setHiveTarget(HiveTarget target) {
+        if (target != null) {
+            this.selectedHiveTarget = target;
+        }
+    }
+
+    public boolean isHiveAlignEnabled() { return hiveAlignEnabled; }
+    public HiveTarget getSelectedHiveTarget() { return selectedHiveTarget; }
+    public boolean isHiveAligned() { return isHiveAligned; }
+    public double getHiveHeadingErrorDeg() { return hiveHeadingErrorDeg; }
+    public double getHiveDistanceInches() { return hiveDistanceInches; }
+
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }

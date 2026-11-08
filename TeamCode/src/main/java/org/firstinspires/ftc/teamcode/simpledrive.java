@@ -57,6 +57,12 @@ public class simpledrive extends LinearOpMode {
             double forward = -gamepad1.left_stick_y;
             double turn = -gamepad1.right_stick_x;
 
+            // ODOMETRY HIVE AUTO ALIGN
+            boolean hiveAlignRunning = shooter.updateHiveAutoAlign(
+                    gamepad2.bWasPressed(),
+                    gamepad2.xWasPressed()
+            );
+
             // APRILTAG AUTO AIM
             shooter.updateAutoAim(gamepad2.a);
 
@@ -75,7 +81,7 @@ public class simpledrive extends LinearOpMode {
             );
 
             // MANUAL DRIVE
-            if (!autoPickupRunning && !shooter.isAutoAimEnabled()) {
+            if (!autoPickupRunning && !shooter.isAutoAimEnabled() && !hiveAlignRunning) {
 
                 drive.setDrivePowers(
                         new PoseVelocity2d(
@@ -117,19 +123,19 @@ public class simpledrive extends LinearOpMode {
             }
 
             // HOODS
-            boolean rightHoodUp = gamepad1.y;
-            boolean rightHoodDown = gamepad1.a;
-            boolean leftHoodUp = gamepad1.x;
-            boolean leftHoodDown = gamepad1.b;
+            boolean rightHoodUp = gamepad1.yWasPressed();
+            boolean rightHoodDown = gamepad1.aWasPressed();
+            boolean leftHoodUp = gamepad1.xWasPressed();
+            boolean leftHoodDown = gamepad1.bWasPressed();
 
             shooter.adjustRightHood(
-                    rightHoodUp && !previousRightHoodUp,
-                    rightHoodDown && !previousRightHoodDown
+                    rightHoodUp,
+                    rightHoodDown
             );
 
             shooter.adjustLeftHood(
-                    leftHoodUp && !previousLeftHoodUp,
-                    leftHoodDown && !previousLeftHoodDown
+                    leftHoodUp,
+                    leftHoodDown
             );
 
 
@@ -159,6 +165,8 @@ public class simpledrive extends LinearOpMode {
             telemetry.addLine("Y/A: Right Hood Increase/Decrease");
             telemetry.addLine("X/B: Left Hood Increase/Decrease");
             telemetry.addLine("Gamepad 2 A: Toggle AprilTag Auto-Aim");
+            telemetry.addLine("Gamepad 2 B: Toggle Odometry Hive Auto-Align");
+            telemetry.addLine("Gamepad 2 X: Cycle Target Hive");
             telemetry.addLine("Gamepad 2 Right Bumper: Toggle Gate");
 
             // ==========================================
@@ -322,6 +330,39 @@ public class simpledrive extends LinearOpMode {
                     "Tag Angle",
                     "%.2f",
                     shooter.getSelectedTagAngle()
+            );
+
+            // ==========================================
+            // HIVE AUTO-ALIGN TELEMETRY
+            // ==========================================
+
+            telemetry.addLine("========== HIVE AUTO ALIGN ==========");
+
+            telemetry.addData(
+                    "Enabled",
+                    shooter.isHiveAlignEnabled()
+            );
+
+            telemetry.addData(
+                    "Target Hive",
+                    shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")"
+            );
+
+            telemetry.addData(
+                    "Distance to Hive",
+                    "%.2f in",
+                    shooter.getHiveDistanceInches()
+            );
+
+            telemetry.addData(
+                    "Shooter Error",
+                    "%.2f deg",
+                    shooter.getHiveHeadingErrorDeg()
+            );
+
+            telemetry.addData(
+                    "Aligned (±1°)",
+                    shooter.isHiveAligned() ? "YES" : "NO"
             );
 
             telemetry.update();
