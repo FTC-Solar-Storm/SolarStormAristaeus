@@ -1,18 +1,16 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
 @Config
 public class Shooter {
@@ -26,14 +24,31 @@ public class Shooter {
 
     private final DcMotorEx flywheel1, flywheel2;
     private final Servo rightShooterHood, leftShooterHood;
-    private final Limelight3A limelight;
     private final TankDrive drive;
 
     private double targetVelocity = 50;
     private boolean previousDpadUp, previousDpadDown;
-    private boolean autoAimEnabled, previousAutoAimToggle;
-    private int selectedTagId = -1;
-    private double selectedTagDistance = -1.0, selectedTagAngle;
+
+    public enum HiveTarget {
+        BLUE_HIVE_TOP(13.0, 13.0, "Blue Hive Top"),
+        RED_HIVE_TOP(13.0, -13.0, "Red Hive Top"),
+        RED_HIVE_BOTTOM(-13.0, -13.0, "Red Hive Bottom"),
+        BLUE_HIVE_BOTTOM(-13.0, 13.0, "Blue Hive Bottom");
+
+        public final double x;
+        public final double y;
+        public final String name;
+
+        HiveTarget(double x, double y, String name) {
+            this.x = x;
+            this.y = y;
+            this.name = name;
+        }
+    }
+
+    private HiveTarget selectedHiveTarget = HiveTarget.BLUE_HIVE_TOP;
+    private double lastHeadingOffsetDeg = 0.0;
+    private double hiveDistanceInches = 0.0;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, TankDrive drive) {
         this.drive = drive;
@@ -51,9 +66,6 @@ public class Shooter {
         rightShooterHood.setPosition(1.0);
         leftShooterHood.setPosition(0.0);
 
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(0);
-        limelight.start();
         applyPIDF();
     }
 
@@ -119,148 +131,40 @@ public class Shooter {
     public double getRightHoodPosition() { return rightShooterHood.getPosition(); }
     public double getLeftHoodPosition() { return leftShooterHood.getPosition(); }
 
-    public void updateAutoAim(boolean togglePressed) {
-        if (togglePressed && !previousAutoAimToggle) {
-            autoAimEnabled = !autoAimEnabled;
-        }
-        previousAutoAimToggle = togglePressed;
-
-        if (!autoAimEnabled) return;
-
-        LLResult result = limelight.getLatestResult();
-
-        if (result != null && result.isValid() && !result.getFiducialResults().isEmpty()) {
-
-            for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-                int id = tag.getFiducialId();
-
-                // Only target BioBuzz season AprilTags (IDs 30 through 45)
-                if (id < 30 || id > 45) continue;
-
-                selectedTagId = id;
-                selectedTagAngle = tag.getTargetXDegrees();
-
-                Position p = tag.getTargetPoseCameraSpace().getPosition();
-                if (p != null) {
-                    selectedTagDistance = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-                } else {
-                    selectedTagDistance = -1.0;
-                }
-
-                // Turn until within 3 degrees of the AprilTag
-                if (Math.abs(selectedTagAngle) > 3.0) {
-                    double turnPower = selectedTagAngle * 0.02;
-
-                    turnPower = clamp(turnPower, -0.5, 0.5);
-
-                    drive.setDrivePowers(
-                            new PoseVelocity2d(new Vector2d(0, 0), turnPower)
-                    );
-                } else {
-                    drive.setDrivePowers(
-                            new PoseVelocity2d(new Vector2d(0, 0), 0)
-                    );
-                }
-
-                return;
-            }
-        }
-
-        // No valid AprilTag found
-        selectedTagId = -1;
-        selectedTagDistance = -1.0;
-        selectedTagAngle = 0.0;
-
-        drive.setDrivePowers(
-                new PoseVelocity2d(new Vector2d(0, 0), 0)
-        );
-    }
-
-    public int getSelectedTagId() { return selectedTagId; }
-    public double getSelectedTagDistance() { return selectedTagDistance; }
-    public double getSelectedTagAngle() { return selectedTagAngle; }
-    public boolean isAutoAimEnabled() { return autoAimEnabled; }
-
-    // =======================================================
-    // AUTO ALIGNINGNGNGNGNGNGNGNNG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // =======================================================
-
-    public enum HiveTarget {
-        BLUE_HIVE_TOP(13.0, 13.0, "Blue Hive Top"),
-        RED_HIVE_TOP(13.0, -13.0, "Red Hive Top"),
-        RED_HIVE_BOTTOM(-13.0, -13.0, "Red Hive Bottom"),
-        BLUE_HIVE_BOTTOM(-13.0, 13.0, "Blue Hive Bottom");
-
-        public final double x;
-        public final double y;
-        public final String name;
-
-        HiveTarget(double x, double y, String name) {
-            this.x = x;
-            this.y = y;
-            this.name = name;
-        }
-    }
-
-    private boolean hiveAlignEnabled = false;
-    private HiveTarget selectedHiveTarget = HiveTarget.BLUE_HIVE_TOP;
-    private double hiveHeadingErrorDeg = 0.0;
-    private double hiveDistanceInches = 0.0;
-    private boolean isHiveAligned = false;
-
-
-    public boolean updateHiveAutoAlign(boolean togglePressed, boolean cycleTargetPressed) {
-        if (togglePressed) {
-            hiveAlignEnabled = !hiveAlignEnabled;
-        }
-
-        if (cycleTargetPressed) {
-            cycleHiveTarget();
-        }
-
-        if (!hiveAlignEnabled || drive == null) {
-            isHiveAligned = false;
-            return false;
-        }
+    /**
+     * Calculates and returns the heading offset angle in radians to point shooter (BACK) at target Hive.
+     * Positive (+) = Turn Left, Negative (-) = Turn Right.
+     */
+    public double calculateHiveHeadingOffsetRad(HiveTarget target) {
+        if (drive == null || target == null) return 0;
 
         drive.updatePoseEstimate();
-        com.acmerobotics.roadrunner.Pose2d currentPose = drive.localizer.getPose();
+        Pose2d currentPose = drive.localizer.getPose();
 
         double rx = currentPose.position.x;
         double ry = currentPose.position.y;
-        double rHeadingRad = currentPose.heading.toDouble();
+        double rHeading = currentPose.heading.toDouble(); // radians
 
-        double dx = selectedHiveTarget.x - rx;
-        double dy = selectedHiveTarget.y - ry;
+        double dx = target.x - rx;
+        double dy = target.y - ry;
 
         hiveDistanceInches = Math.hypot(dx, dy);
 
-        // Face front at target angle; shooter in BACK = targetAngle + PI radians (180 deg)
-        double angleToTargetRad = Math.atan2(dy, dx);
-        double targetShooterHeadingRad = angleToTargetRad + Math.PI;
+        // Field angle to Hive; shooter in BACK = target + 180 deg (PI rad)
+        double angleToHiveRad = Math.atan2(dy, dx);
+        double targetShooterHeadingRad = angleToHiveRad + Math.PI;
 
-        double headingErrorRad = targetShooterHeadingRad - rHeadingRad;
-        while (headingErrorRad > Math.PI) headingErrorRad -= 2.0 * Math.PI;
-        while (headingErrorRad < -Math.PI) headingErrorRad += 2.0 * Math.PI;
+        // Calculate heading offset angle in radians
+        double offsetRad = targetShooterHeadingRad - rHeading;
+        while (offsetRad > Math.PI) offsetRad -= 2.0 * Math.PI;
+        while (offsetRad < -Math.PI) offsetRad += 2.0 * Math.PI;
 
-        hiveHeadingErrorDeg = Math.toDegrees(headingErrorRad);
+        lastHeadingOffsetDeg = Math.toDegrees(offsetRad);
+        return offsetRad;
+    }
 
-        if (Math.abs(hiveHeadingErrorDeg) > 1.0) {
-            isHiveAligned = false;
-            double turnPower = hiveHeadingErrorDeg * 0.025;
-
-            // Minimum power floor to overcome static drivetrain friction
-            double magnitude = Math.max(0.18, Math.abs(turnPower));
-            turnPower = Math.copySign(magnitude, turnPower);
-            turnPower = clamp(turnPower, -0.45, 0.45);
-
-            drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), turnPower));
-        } else {
-            isHiveAligned = true;
-            drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0));
-        }
-
-        return true;
+    public double calculateHiveHeadingOffsetRad() {
+        return calculateHiveHeadingOffsetRad(selectedHiveTarget);
     }
 
     public void cycleHiveTarget() {
@@ -275,10 +179,8 @@ public class Shooter {
         }
     }
 
-    public boolean isHiveAlignEnabled() { return hiveAlignEnabled; }
     public HiveTarget getSelectedHiveTarget() { return selectedHiveTarget; }
-    public boolean isHiveAligned() { return isHiveAligned; }
-    public double getHiveHeadingErrorDeg() { return hiveHeadingErrorDeg; }
+    public double getLastHeadingOffsetDeg() { return lastHeadingOffsetDeg; }
     public double getHiveDistanceInches() { return hiveDistanceInches; }
 
     private double clamp(double value, double min, double max) {
@@ -287,7 +189,6 @@ public class Shooter {
 
     public void shutdown() {
         stop();
-        limelight.stop();
         if (drive != null) drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0));
     }
 }

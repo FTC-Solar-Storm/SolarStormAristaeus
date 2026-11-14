@@ -51,20 +51,25 @@ public class simpledrive extends LinearOpMode {
 
         waitForStart();
 
+        // Reset starting position to (0, 0, 0)
+        drive.localizer.setPose(new Pose2d(0, 0, 0));
+        if (drive.localizer instanceof PinpointLocalizer) {
+            ((PinpointLocalizer) drive.localizer).driver.resetPosAndIMU();
+        }
+
         while (opModeIsActive()) {
 
             // DRIVE
             double forward = -gamepad1.left_stick_y;
             double turn = -gamepad1.right_stick_x;
 
-            // ODOMETRY HIVE AUTO ALIGN
-            boolean hiveAlignRunning = shooter.updateHiveAutoAlign(
-                    gamepad2.bWasPressed(),
-                    gamepad2.xWasPressed()
-            );
-
-            // APRILTAG AUTO AIM
-            shooter.updateAutoAim(gamepad2.a);
+            // ODOMETRY HIVE AUTO ALIGN (Single-press B turns X degrees once to selected Hive)
+            if (gamepad2.bWasPressed() || gamepad1.bWasPressed()) {
+                //shooter.alignToHive();
+            }
+            if (gamepad2.xWasPressed() || gamepad1.xWasPressed()) {
+                shooter.cycleHiveTarget();
+            }
 
             // COLOR VISION AUTO PICKUP
             boolean autoPickupButton = gamepad1.right_bumper;
@@ -81,7 +86,7 @@ public class simpledrive extends LinearOpMode {
             );
 
             // MANUAL DRIVE
-            if (!autoPickupRunning && !shooter.isAutoAimEnabled() && !hiveAlignRunning) {
+            if (!autoPickupRunning) {
 
                 drive.setDrivePowers(
                         new PoseVelocity2d(
@@ -305,43 +310,10 @@ public class simpledrive extends LinearOpMode {
             );
 
             // ==========================================
-            // APRILTAG AUTO-AIM TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== AUTO AIM ==========");
-
-            telemetry.addData(
-                    "Enabled",
-                    shooter.isAutoAimEnabled()
-            );
-
-            telemetry.addData(
-                    "Selected Tag",
-                    shooter.getSelectedTagId()
-            );
-
-            telemetry.addData(
-                    "Tag Distance",
-                    "%.2f",
-                    shooter.getSelectedTagDistance()
-            );
-
-            telemetry.addData(
-                    "Tag Angle",
-                    "%.2f",
-                    shooter.getSelectedTagAngle()
-            );
-
-            // ==========================================
             // HIVE AUTO-ALIGN TELEMETRY
             // ==========================================
 
             telemetry.addLine("========== HIVE AUTO ALIGN ==========");
-
-            telemetry.addData(
-                    "Enabled",
-                    shooter.isHiveAlignEnabled()
-            );
 
             telemetry.addData(
                     "Target Hive",
@@ -355,14 +327,9 @@ public class simpledrive extends LinearOpMode {
             );
 
             telemetry.addData(
-                    "Shooter Error",
+                    "Last Heading Offset",
                     "%.2f deg",
-                    shooter.getHiveHeadingErrorDeg()
-            );
-
-            telemetry.addData(
-                    "Aligned (±1°)",
-                    shooter.isHiveAligned() ? "YES" : "NO"
+                    shooter.getLastHeadingOffsetDeg()
             );
 
             telemetry.update();
