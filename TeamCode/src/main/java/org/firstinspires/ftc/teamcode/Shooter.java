@@ -49,10 +49,10 @@ public class Shooter {
 
     public enum HiveTarget {
 
-        BLUE_HIVE_TOP(13.0, 13.0, "Blue Hive Top"),
-        RED_HIVE_TOP(13.0, -13.0, "Red Hive Top"),
-        RED_HIVE_BOTTOM(-13.0, -13.0, "Red Hive Bottom"),
-        BLUE_HIVE_BOTTOM(-13.0, 13.0, "Blue Hive Bottom");
+        BLUE_HIVE_TOP(15.0, 13.0, "Blue Hive Top"),
+        RED_HIVE_TOP(15.0, -13.0, "Red Hive Top"),
+        RED_HIVE_BOTTOM(-15.0, -13.0, "Red Hive Bottom"),
+        BLUE_HIVE_BOTTOM(-15.0, 13.0, "Blue Hive Bottom");
 
         public final double x;
         public final double y;
@@ -600,7 +600,7 @@ public class Shooter {
         );
 
         double rightHoodPos = clamp(
-                -0.931 + (0.326 * Math.log(x)),
+                1.71 + (-0.245 * Math.log(x)),
                 0.0,
                 1.0
         );

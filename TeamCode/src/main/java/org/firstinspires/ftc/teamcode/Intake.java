@@ -48,14 +48,16 @@ public final class Intake {
 
 
     }
-
+    public boolean gateUp = true;
     public void moveGate(boolean gatebutton) {
         if (gatebutton) {
 
-            if (gate.getPosition() == 0.35) {
-                gate.setPosition(0);
-            } else {
+            if (gateUp) {
                 gate.setPosition(0.35);
+                gateUp = !gateUp;
+            } else {
+                gate.setPosition(0);
+                gateUp = !gateUp;
             }
         }
     }
