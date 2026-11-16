@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -30,34 +29,34 @@ public class HiveAutoAlign extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            // Single press B calculates offset and runs Actions.runBlocking in TeleOp
-            if (gamepad1.bWasPressed()) {
-                drive.updatePoseEstimate();
-                Pose2d currentPose = drive.localizer.getPose();
-                double offsetRad = shooter.calculateHiveHeadingOffsetRad();
+            // Central update loop: updates pose estimate, distance, and heading offset continuously
+            //shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
 
-                Actions.runBlocking(
-                        drive.actionBuilder(currentPose)
-                                .turn(-offsetRad)
-                                .build()
-                );
-            }
+            // B Button toggles auto-align ON/OFF (pressing B again exits immediately)
+            boolean hiveAlignActive = shooter.updateHiveAutoAlign(gamepad1.bWasPressed());
 
             // Single press X cycles through target Hives
             if (gamepad1.xWasPressed()) {
                 shooter.cycleHiveTarget();
             }
 
-            // Manual Drive
-            double forward = -gamepad1.left_stick_y;
-            double turn = -gamepad1.right_stick_x;
+            // Single press A sets shooter RPM automatically based on distance to selected Hive
+            if (gamepad1.aWasPressed()) {
+                shooter.autoSetRPMFromDistance();
+            }
 
-            drive.setDrivePowers(
-                    new PoseVelocity2d(
-                            new Vector2d(forward, 0),
-                            turn
-                    )
-            );
+            // Manual Drive when Auto Align is NOT active
+            if (!hiveAlignActive) {
+                double forward = -gamepad1.left_stick_y;
+                double turn = -gamepad1.right_stick_x;
+
+                drive.setDrivePowers(
+                        new PoseVelocity2d(
+                                new Vector2d(forward, 0),
+                                turn
+                        )
+                );
+            }
 
             // Intake Controls
             double intakePower = gamepad1.left_trigger;
@@ -65,8 +64,7 @@ public class HiveAutoAlign extends LinearOpMode {
             intake.left.setPower(-intakePower);
             intake.right.setPower(intakePower);
 
-            // Shooter Controls
-            shooter.adjustTargetVelocity(gamepad1.dpad_up, gamepad1.dpad_down);
+            // Shooter Spin Controls
             if (gamepad1.right_trigger > 0.1) {
                 shooter.spin();
             } else {
@@ -74,12 +72,7 @@ public class HiveAutoAlign extends LinearOpMode {
             }
 
             // Telemetry Display
-            drive.updatePoseEstimate();
             Pose2d pose = drive.localizer.getPose();
-
-// Continuously update distance and heading offset to selected Hive
-            double headingOffsetRad = shooter.calculateHiveHeadingOffsetRad();
-            double headingOffsetDeg = Math.toDegrees(headingOffsetRad);
 
             telemetry.addLine("========== ROBOT ODOM POSE ==========");
             telemetry.addData("Pose X (in)", "%.2f", pose.position.x);
@@ -93,19 +86,20 @@ public class HiveAutoAlign extends LinearOpMode {
             telemetry.addData("Target X", "%.2f", shooter.getSelectedHiveTarget().x);
             telemetry.addData("Target Y", "%.2f", shooter.getSelectedHiveTarget().y);
 
-// Distance to selected Hive
-            telemetry.addData("Distance to Hive", "%.2f in",
-                    shooter.getHiveDistanceInches());
+            // Distance to selected Hive
+            telemetry.addData("Distance to Hive", "%.2f",
+                    shooter.getHiveDistance());
 
-// Continuously updated heading offset
+            // Continuously updated heading offset
             telemetry.addData("Heading Offset", "%.2f deg",
-                    headingOffsetDeg);
-            telemetry.addData("Heading Offset (rad)", "%.4f",
-                    headingOffsetRad);
+                    shooter.getLastHeadingOffsetDeg());
+            telemetry.addData("Aligned (±2.0°)",
+                    shooter.isHiveAligned() ? "YES" : "NO");
 
             telemetry.addLine("\n========== CONTROLS ==========");
             telemetry.addLine("Gamepad 1 B : Turn to align to Hive");
             telemetry.addLine("Gamepad 1 X : Cycle Target Hive");
+            telemetry.addLine("Gamepad 1 A : Auto Set Shooter RPM from Distance");
             telemetry.addLine("Left Stick Y / Right Stick X : Manual Drive");
             telemetry.addLine("Right Trigger : Shooter");
 

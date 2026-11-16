@@ -15,39 +15,15 @@ public class simpledrive extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        // CONNECT TELEMETRY TO FTC DASHBOARD
         telemetry = new MultipleTelemetry(
                 telemetry,
                 FtcDashboard.getInstance().getTelemetry()
         );
 
-        // INITIALIZE DRIVE
-        TankDrive drive = new TankDrive(
-                hardwareMap,
-                new Pose2d(0, 0, 0)
-        );
-
-        // INITIALIZE SUBSYSTEMS
+        TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Intake intake = new Intake(hardwareMap, telemetry);
-
-        Shooter shooter = new Shooter(
-                hardwareMap,
-                telemetry,
-                drive
-        );
-
-        // INITIALIZE LOGITECH C920 CAMERA
+        Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
         ColorVision vision = new ColorVision(hardwareMap);
-
-        // HOOD BUTTON STATES
-        boolean previousRightHoodUp = false;
-        boolean previousRightHoodDown = false;
-        boolean previousLeftHoodUp = false;
-        boolean previousLeftHoodDown = false;
-
-        // TOGGLE BUTTON STATES
-        boolean previousAutoPickupButton = false;
-        boolean previousGateButton = false;
 
         waitForStart();
 
@@ -59,285 +35,92 @@ public class simpledrive extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            // DRIVE
+            // Central Subsystem Update (Pose, Distance, Target Velocity Steps)
+            shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
+
+            // Drive Inputs
             double forward = -gamepad1.left_stick_y;
             double turn = -gamepad1.right_stick_x;
 
-            // ODOMETRY HIVE AUTO ALIGN (Single-press B turns X degrees once to selected Hive)
-            if (gamepad2.bWasPressed() || gamepad1.bWasPressed()) {
-                //shooter.alignToHive();
-            }
-            if (gamepad2.xWasPressed() || gamepad1.xWasPressed()) {
-                shooter.cycleHiveTarget();
-            }
+            // Hive Auto-Align (Button B = Auto-set shooter & align with 5s timeout / toggle off)
+            boolean hiveAlignActive = shooter.updateHiveAutoAlign(gamepad2.bWasPressed() || gamepad1.bWasPressed());
 
-            // COLOR VISION AUTO PICKUP
-            boolean autoPickupButton = gamepad1.right_bumper;
+            // Target Hive Selection & Auto Shooter Distance Config
+            if (gamepad2.xWasPressed()) shooter.cycleHiveTarget();
+            if (gamepad2.aWasPressed()) shooter.autoSetShooterFromDistance();
 
-            boolean autoPickupPressed =
-                    autoPickupButton && !previousAutoPickupButton;
+            // Color Vision Auto Pickup
+            boolean autoPickupActive = vision.updateAutoPickup(gamepad1.rightBumperWasPressed(), drive, intake);
 
-            previousAutoPickupButton = autoPickupButton;
-
-            boolean autoPickupRunning = vision.updateAutoPickup(
-                    autoPickupPressed,
-                    drive,
-                    intake
-            );
-
-            // MANUAL DRIVE
-            if (!autoPickupRunning) {
-
-                drive.setDrivePowers(
-                        new PoseVelocity2d(
-                                new Vector2d(forward, 0),
-                                turn
-                        )
-                );
+            // Manual Drive
+            if (!autoPickupActive && !hiveAlignActive) {
+                drive.setDrivePowers(new PoseVelocity2d(new Vector2d(forward, 0), turn));
             }
 
-            // GATE TOGGLE
-
-
+            // Gate Servo Toggle
             intake.moveGate(gamepad2.rightBumperWasPressed());
 
-
-
-
-            // MANUAL INTAKE
-            double intakePower = gamepad1.left_trigger*0.6;
-
+            // Manual Intake Motor
+            double intakePower = gamepad1.left_trigger * 0.6;
             if (!vision.isAutoPickupActive()) {
-
                 intake.intakeMotor.setPower(intakePower);
                 intake.left.setPower(-intakePower);
                 intake.right.setPower(intakePower);
             }
 
-            // SHOOTER
-            shooter.adjustTargetVelocity(
-                    gamepad1.dpad_up,
-                    gamepad1.dpad_down
-            );
-
-            // HOLD RIGHT TRIGGER TO SPIN FLYWHEELS
+            // Shooter Flywheel Motors
             if (gamepad1.right_trigger > 0.1) {
                 shooter.spin();
             } else {
                 shooter.stop();
             }
 
-            // HOODS
-            boolean rightHoodUp = gamepad1.yWasPressed();
-            boolean rightHoodDown = gamepad1.aWasPressed();
-            boolean leftHoodUp = gamepad1.xWasPressed();
-            boolean leftHoodDown = gamepad1.bWasPressed();
+            // Manual Hood Adjustments
+            shooter.adjustRightHood(gamepad1.yWasPressed(), gamepad1.aWasPressed());
+            shooter.adjustLeftHood(gamepad1.xWasPressed(), gamepad1.bWasPressed());
 
-            shooter.adjustRightHood(
-                    rightHoodUp,
-                    rightHoodDown
-            );
-
-            shooter.adjustLeftHood(
-                    leftHoodUp,
-                    leftHoodDown
-            );
-
-
-            previousRightHoodUp = rightHoodUp;
-            previousRightHoodDown = rightHoodDown;
-            previousLeftHoodUp = leftHoodUp;
-            previousLeftHoodDown = leftHoodDown;
-
-            // APPLY PIDF VALUES
+            // Apply PIDF
             shooter.applyPIDF();
+
+            // ==========================================
+            // TELEMETRY
+            // ==========================================
+
             Pose2d currentPose = drive.localizer.getPose();
+
+            telemetry.addLine("========== ROBOT ODOM POSE ==========");
             telemetry.addData("Pose X (in)", "%.2f", currentPose.position.x);
             telemetry.addData("Pose Y (in)", "%.2f", currentPose.position.y);
-            telemetry.addData("Pose Heading (deg)", "%.2f", Math.toDegrees(currentPose.heading.toDouble()));
-            // ==========================================
-            // CONTROLS
-            // ==========================================
+            telemetry.addData("Heading (deg)", "%.2f", Math.toDegrees(currentPose.heading.toDouble()));
 
-            telemetry.addLine("========== CONTROLS ==========");
-            telemetry.addLine("Left Stick Y: Drive Forward/Backward");
-            telemetry.addLine("Right Stick X: Turn");
+            telemetry.addLine("\n========== CONTROLS ==========");
+            telemetry.addLine("Left Stick Y / Right Stick X: Manual Drive");
             telemetry.addLine("Left Trigger: Manual Intake");
-            telemetry.addLine("Right Bumper: Toggle Color Vision Auto Pickup");
-            telemetry.addLine("Left Bumper: Transfer");
-            telemetry.addLine("Right Trigger: Enable Shooter");
-            telemetry.addLine("D-Pad Up/Down: Adjust Target Velocity");
-            telemetry.addLine("Y/A: Right Hood Increase/Decrease");
-            telemetry.addLine("X/B: Left Hood Increase/Decrease");
-            telemetry.addLine("Gamepad 2 A: Toggle AprilTag Auto-Aim");
-            telemetry.addLine("Gamepad 2 B: Toggle Odometry Hive Auto-Align");
+            telemetry.addLine("Right Bumper (Gamepad 1): Color Vision Auto Pickup");
+            telemetry.addLine("Right Trigger: Spin Flywheels");
+            telemetry.addLine("D-Pad Up/Down: Manual Speed Step");
+            telemetry.addLine("Gamepad 1 Y/A: Right Hood Adjust");
+            telemetry.addLine("Gamepad 1 X/B: Left Hood Adjust");
+            telemetry.addLine("Gamepad 2 B / Gamepad 1 B: Auto Shooter & Hive Align (5s)");
             telemetry.addLine("Gamepad 2 X: Cycle Target Hive");
+            telemetry.addLine("Gamepad 2 A: Auto-Set Shooter from Distance");
             telemetry.addLine("Gamepad 2 Right Bumper: Toggle Gate");
 
-            // ==========================================
-            // DRIVE TELEMETRY
-            // ==========================================
+            telemetry.addLine("\n========== SHOOTER ==========");
+            telemetry.addData("Right Flywheel Vel", "%.1f", shooter.getFlywheel1Velocity());
+            telemetry.addData("Left Flywheel Vel", "%.1f", shooter.getFlywheel2Velocity());
+            telemetry.addData("Right Hood Pos", "%.2f", shooter.getRightHoodPosition());
+            telemetry.addData("Left Hood Pos", "%.2f", shooter.getLeftHoodPosition());
 
-            telemetry.addLine("========== DRIVE ==========");
-
-            telemetry.addData("Forward", "%.2f", forward);
-            telemetry.addData("Turn", "%.2f", turn);
-
-            // ==========================================
-            // CAMERA TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== COLOR VISION ==========");
-
-            telemetry.addData(
-                    "Camera Open",
-                    vision.isCameraOpened()
-            );
-
-            telemetry.addData(
-                    "Camera Frames",
-                    vision.getFrameCount()
-            );
-
-            telemetry.addData(
-                    "Object Detected",
-                    vision.isDetected()
-            );
-
-            telemetry.addData(
-                    "Center X",
-                    vision.getCenterX()
-            );
-
-            telemetry.addData(
-                    "Center Y",
-                    vision.getCenterY()
-            );
-
-            telemetry.addData(
-                    "Object Width",
-                    vision.getWidth()
-            );
-
-            telemetry.addData(
-                    "Object Height",
-                    vision.getHeight()
-            );
-
-            telemetry.addData(
-                    "Target Angle",
-                    "%.2f degrees",
-                    vision.getOffsetAngle()
-            );
-
-            telemetry.addData(
-                    "Auto Pickup",
-                    vision.isAutoPickupActive() ? "ON" : "OFF"
-            );
-
-            // ==========================================
-            // INTAKE TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== INTAKE ==========");
-
-            telemetry.addData(
-                    "Intake Power",
-                    "%.2f",
-                    intakePower
-            );
-
-            telemetry.addData(
-                    "Transfer",
-                    gamepad1.left_bumper ? "ON" : "OFF"
-            );
-
-            // ==========================================
-            // SHOOTER TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== SHOOTER ==========");
-
-            telemetry.addData(
-                    "Target Velocity",
-                    "%.1f",
-                    shooter.getTargetVelocity()
-            );
-
-            telemetry.addData(
-                    "Right Flywheel Velocity",
-                    "%.1f",
-                    shooter.getFlywheel1Velocity()
-            );
-
-            telemetry.addData(
-                    "Left Flywheel Velocity",
-                    "%.1f",
-                    shooter.getFlywheel2Velocity()
-            );
-
-            telemetry.addData(
-                    "Average Velocity",
-                    "%.1f",
-                    shooter.getCurrentVelocity()
-            );
-
-            telemetry.addData(
-                    "PIDF",
-                    "P: %.2f | I: %.2f | D: %.2f | F: %.2f",
-                    Shooter.FLYWHEEL_P,
-                    Shooter.FLYWHEEL_I,
-                    Shooter.FLYWHEEL_D,
-                    Shooter.FLYWHEEL_F
-            );
-
-            // ==========================================
-            // HOOD TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== HOODS ==========");
-
-            telemetry.addData(
-                    "Right Hood Position",
-                    "%.2f",
-                    shooter.getRightHoodPosition()
-            );
-
-            telemetry.addData(
-                    "Left Hood Position",
-                    "%.2f",
-                    shooter.getLeftHoodPosition()
-            );
-
-            // ==========================================
-            // HIVE AUTO-ALIGN TELEMETRY
-            // ==========================================
-
-            telemetry.addLine("========== HIVE AUTO ALIGN ==========");
-
-            telemetry.addData(
-                    "Target Hive",
-                    shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")"
-            );
-
-            telemetry.addData(
-                    "Distance to Hive",
-                    "%.2f in",
-                    shooter.getHiveDistanceInches()
-            );
-
-            telemetry.addData(
-                    "Last Heading Offset",
-                    "%.2f deg",
-                    shooter.getLastHeadingOffsetDeg()
-            );
+            telemetry.addLine("\n========== HIVE AUTO ALIGN ==========");
+            telemetry.addData("Target Hive", shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")");
+            telemetry.addData("Target Distance", "%.2f", shooter.getHiveDistance());
+            telemetry.addData("Heading Offset", "%.2f deg", shooter.getLastHeadingOffsetDeg());
+            telemetry.addData("Aligned (±2.0°)", shooter.isHiveAligned() ? "YES" : "NO");
+            telemetry.addData("Auto Align Active", shooter.isHiveAlignActive() ? "YES" : "NO");
 
             telemetry.update();
         }
-
-        // ==========================================
-        // SHUTDOWN
-        // ==========================================
 
         shooter.shutdown();
         vision.stop();
