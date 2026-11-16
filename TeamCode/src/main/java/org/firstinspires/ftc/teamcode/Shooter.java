@@ -32,7 +32,9 @@ public class Shooter {
     private final TankDrive drive;
 
     // MANUAL TARGET VELOCITY
-    private double targetVelocity = 50;
+    private double targetVelocityNectar = 50;
+    private double targetVelocityPollen = 50;
+
 
     // SEPARATE AUTOMATIC TARGET VELOCITIES
     private double rightTargetVelocity = 50;
@@ -169,9 +171,9 @@ public class Shooter {
     }
 
     // ORIGINAL OVERLOADED UPDATE METHOD
-    public void update(boolean dpadUp, boolean dpadDown) {
+    public void update(boolean dpadLeft, boolean dpadRight) {
 
-        adjustTargetVelocity(dpadUp, dpadDown);
+        adjustTargetVelocity(dpadLeft, dpadRight);
 
         update();
     }
@@ -193,13 +195,13 @@ public class Shooter {
 
     public void adjustTargetVelocity(boolean dpadLeft, boolean dpadRight) {
         if (increasemode){
-            if (dpadLeft && !previousDpadLeft) targetVelocity += VELOCITY_STEP;
-            if (dpadRight && !previousDpadRight) targetVelocity += VELOCITY_STEP;
+            if (dpadLeft && !previousDpadLeft) targetVelocityNectar += VELOCITY_STEP;
+            if (dpadRight && !previousDpadRight) targetVelocityPollen += VELOCITY_STEP;
             distanceShooterActive = false;
         }
         if (decreasemode){
-            if (dpadLeft && !previousDpadLeft) targetVelocity -= VELOCITY_STEP;
-            if (dpadRight && !previousDpadRight) targetVelocity -= VELOCITY_STEP;
+            if (dpadLeft && !previousDpadLeft) targetVelocityNectar -= VELOCITY_STEP;
+            if (dpadRight && !previousDpadRight) targetVelocityPollen -= VELOCITY_STEP;
             distanceShooterActive = false;
         }
         previousDpadLeft = dpadLeft;
@@ -222,29 +224,30 @@ public class Shooter {
         } else {
 
             // OTHERWISE USE MANUAL TARGET VELOCITY
-            setFlywheelVelocity(targetVelocity);
+            setFlywheelVelocity(targetVelocityNectar, targetVelocityPollen);
         }
     }
 
-    private void setFlywheelVelocity(double velocity) {
+    private void setFlywheelVelocity(double velocityNectar, double velocityPollen) {
 
-        flywheel1.setVelocity(velocity);
-        flywheel2.setVelocity(velocity);
+        flywheel1.setVelocity(velocityPollen);
+        flywheel2.setVelocity(velocityNectar);
     }
 
     public void stop() {
 
         // STOP MOTORS WITHOUT RESETTING THEIR TARGETS
-        setFlywheelVelocity(0);
+        setFlywheelVelocity(0, 0);
     }
 
     public void slowSpeed() {
 
-        targetVelocity = Math.max(0, targetVelocity - VELOCITY_STEP);
+        targetVelocityNectar = Math.max(0, targetVelocityNectar - VELOCITY_STEP);
+        targetVelocityPollen = Math.max(0, targetVelocityPollen - VELOCITY_STEP);
 
         distanceShooterActive = false;
 
-        setFlywheelVelocity(targetVelocity);
+        setFlywheelVelocity(targetVelocityNectar, targetVelocityPollen);
     }
 
     // AUTOMATIC DISTANCE MODE CONTROL
@@ -261,15 +264,15 @@ public class Shooter {
     // ==========================================
 
     public double getTargetVelocity() {
-        return targetVelocity;
+        return targetVelocityNectar;
     }
 
     public double getRightTargetVelocity() {
-        return distanceShooterActive ? rightTargetVelocity : targetVelocity;
+        return distanceShooterActive ? rightTargetVelocity : targetVelocityPollen;
     }
 
     public double getLeftTargetVelocity() {
-        return distanceShooterActive ? leftTargetVelocity : targetVelocity;
+        return distanceShooterActive ? leftTargetVelocity : targetVelocityNectar;
     }
 
     public double getFlywheel1Velocity() {

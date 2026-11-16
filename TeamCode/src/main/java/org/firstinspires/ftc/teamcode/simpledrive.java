@@ -36,7 +36,8 @@ public class simpledrive extends LinearOpMode {
         while (opModeIsActive()) {
 
             // Central Subsystem Update (Pose, Distance, Target Velocity Steps)
-            shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
+            shooter.setshootermode(gamepad1.dpad_up, gamepad1.dpad_down);
+            shooter.update(gamepad1.dpad_left, gamepad1.dpad_right);
 
             // Drive Inputs
             double forward = -gamepad1.left_stick_y;
@@ -98,7 +99,8 @@ public class simpledrive extends LinearOpMode {
             telemetry.addLine("Left Trigger: Manual Intake");
             telemetry.addLine("Right Bumper (Gamepad 1): Color Vision Auto Pickup");
             telemetry.addLine("Right Trigger: Spin Flywheels");
-            telemetry.addLine("D-Pad Up/Down: Manual Speed Step");
+            telemetry.addLine("D-Pad Up/Down: Enable increase/decrease speed mode");
+            telemetry.addLine("D-Pad Left/Right: Change ");
             telemetry.addLine("Gamepad 1 Y/A: Right Hood Adjust");
             telemetry.addLine("Gamepad 1 X/B: Left Hood Adjust");
             telemetry.addLine("Gamepad 2 B / Gamepad 1 B: Auto Shooter & Hive Align (5s)");
