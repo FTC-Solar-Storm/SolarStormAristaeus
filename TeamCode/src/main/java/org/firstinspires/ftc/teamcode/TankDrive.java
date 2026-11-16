@@ -75,8 +75,8 @@ public final class TankDrive {
         public double trackWidthTicks = 5523.690583741631;
 
         // feedforward parameters (in tick units)
-        public double kS = 0.9206057206074245;
-        public double kV = 0.000397907566027653;
+        public double kS = 0.9252235695030202;
+        public double kV = 0.00039745296800553035;
         public double kA = 0.00001;
 
         // path profile parameters (in inches)
@@ -93,8 +93,8 @@ public final class TankDrive {
         public double ramseteBBar = 2.0; // positive
 
         // turn controller gains
-        public double turnGain = 0.0;
-        public double turnVelGain = 0.0;
+        public double turnGain = 5.0;
+        public double turnVelGain = 1;
     }
 
     public static Params PARAMS = new Params();
@@ -431,7 +431,26 @@ public final class TankDrive {
                     PARAMS.kV / PARAMS.inPerTick, PARAMS.kA / PARAMS.inPerTick);
             double leftPower = feedforward.compute(wheelVels.left) / voltage;
             double rightPower = feedforward.compute(wheelVels.right) / voltage;
+
             tankCommandWriter.write(new TankCommandMessage(voltage, leftPower, rightPower));
+
+// TURN DEBUG TELEMETRY
+            // TURN DEBUG TELEMETRY
+            p.put("Turn Left Power", leftPower);
+            p.put("Turn Right Power", rightPower);
+
+            p.put("Turn Target Heading",
+                    Math.toDegrees(txWorldTarget.heading.value().toDouble()));
+
+            p.put("Current Heading",
+                    Math.toDegrees(localizer.getPose().heading.toDouble()));
+
+            p.put("Turn Error",
+                    Math.toDegrees(
+                            localizer.getPose().heading.minus(
+                                    txWorldTarget.heading.value()
+                            )
+                    ));
 
             for (DcMotorEx m : leftMotors) {
                 m.setPower(leftPower);
