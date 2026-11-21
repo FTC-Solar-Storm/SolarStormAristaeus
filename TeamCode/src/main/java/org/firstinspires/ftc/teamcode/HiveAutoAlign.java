@@ -26,20 +26,22 @@ public class HiveAutoAlign extends LinearOpMode {
         if (drive.localizer instanceof PinpointLocalizer) {
             ((PinpointLocalizer) drive.localizer).driver.resetPosAndIMU();
         }
-
+        boolean hiveAlignActive= false;
         while (opModeIsActive()) {
 
             // Central update loop: updates pose estimate, distance, and heading offset continuously
             //shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
 
             // B Button toggles auto-align ON/OFF (pressing B again exits immediately)
-            boolean hiveAlignActive = shooter.updateHiveAutoAlign(gamepad1.bWasPressed());
+            //boolean hiveAlignActive = shooter.updateHiveAutoAlign(gamepad1.bWasPressed());
 
             // Single press X cycles through target Hives
             if (gamepad1.xWasPressed()) {
                 shooter.cycleHiveTarget();
             }
-
+            if (gamepad1.bWasPressed()){
+                shooter.hiveAutoAlign();
+            }
             // Single press A sets shooter RPM automatically based on distance to selected Hive
             if (gamepad1.aWasPressed()) {
                 shooter.autoSetRPMFromDistance();

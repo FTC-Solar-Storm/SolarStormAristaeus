@@ -4,6 +4,10 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.ftc.Actions;           // For Actions.runBlocking()
+import com.acmerobotics.roadrunner.Action;                // For custom Action classes/interfaces
+import com.acmerobotics.roadrunner.SequentialAction;      // For running actions one after another
+import com.acmerobotics.roadrunner.ParallelAction;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -38,6 +42,11 @@ public class Shooter {
     private double rightTargetVelocity = 50;
     private double leftTargetVelocity = 50;
 
+    private double TRACKING_X_0=-6.07;
+    private double TRACKING_Y_0=0.1;
+
+    private double trackingL=Math.hypot(TRACKING_Y_0,TRACKING_Y_0);
+
     private boolean previousDpadUp, previousDpadDown;
 
     // AUTOMATIC DISTANCE SHOOTER MODE
@@ -49,10 +58,10 @@ public class Shooter {
 
     public enum HiveTarget {
 
-        BLUE_HIVE_TOP(15.0, 13.0, "Blue Hive Top"),
-        RED_HIVE_TOP(15.0, -13.0, "Red Hive Top"),
-        RED_HIVE_BOTTOM(-15.0, -13.0, "Red Hive Bottom"),
-        BLUE_HIVE_BOTTOM(-15.0, 13.0, "Blue Hive Bottom");
+        BLUE_HIVE_TOP(20, 13.0, "Blue Hive Top"),
+        RED_HIVE_TOP(20, -13.0, "Red Hive Top"),
+        RED_HIVE_BOTTOM(-20, -13.0, "Red Hive Bottom"),
+        BLUE_HIVE_BOTTOM(-20, 13.0, "Blue Hive Bottom");
 
         public final double x;
         public final double y;
@@ -457,9 +466,13 @@ public class Shooter {
         double ry = currentPose.position.y;
 
         double rHeading = currentPose.heading.toDouble();
+        double angleBeta2 = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+rHeading;  //added by FX for pointing correction
 
-        double dx = target.x - rx;
-        double dy = target.y - ry;
+        double trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
+        double trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
+
+        double dx = target.x - trackPosX; //added by FX for pointing correction
+        double dy = target.y - trackPosY; //added by FX for pointing correction
 
         hiveDistance = Math.hypot(dx, dy);
 
@@ -493,8 +506,17 @@ public class Shooter {
             isHiveAlignActive = false;
 
             return false;
+        } else{  // try this original method FX 11/18/26
+            drive.setDrivePowers(
+                    new PoseVelocity2d(
+                            new Vector2d(2, 0),
+                            headingErrorRad
+                    )
+            );
+            return true;
         }
 
+        /* This part doesn't make any sense; removed by FX 11/18/2026
         // ORIGINAL PROPORTIONAL TURNING
         double turnPower = lastHeadingOffsetDeg * 0.02;
 
@@ -502,7 +524,7 @@ public class Shooter {
 
         turnPower = Math.copySign(magnitude, turnPower);
 
-        turnPower = clamp(turnPower, -0.65, 0.65);
+        turnPower = clamp(turnPower, -0.8, 0.8);
 
         drive.setDrivePowers(
                 new PoseVelocity2d(
@@ -512,6 +534,8 @@ public class Shooter {
         );
 
         return true;
+
+         */
     }
 
     // ORIGINAL OVERLOADED METHOD
@@ -521,6 +545,98 @@ public class Shooter {
                 togglePressed,
                 selectedHiveTarget
         );
+    }
+
+    public boolean hiveAutoAlign() {
+
+        drive.updatePoseEstimate();
+
+        Pose2d currentPose = drive.localizer.getPose();
+
+        double rx = currentPose.position.x;
+        double ry = currentPose.position.y;
+
+        double rHeading = currentPose.heading.toDouble();
+        double angleBeta2 = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+rHeading;  //added by FX for pointing correction
+
+        double trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
+        double trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
+
+        double dx = selectedHiveTarget.x - trackPosX; //added by FX for pointing correction
+        double dy = selectedHiveTarget.y - trackPosY; //added by FX for pointing correction
+
+        hiveDistance = Math.hypot(dx, dy);
+
+        double angleToHiveRad = Math.atan2(dy, dx);
+
+        // SHOOTER FACES BACKWARD
+        double targetShooterHeadingRad = angleToHiveRad + Math.PI;
+
+        double headingErrorRad = targetShooterHeadingRad - rHeading;
+
+        while (headingErrorRad > Math.PI) {
+            headingErrorRad -= 2.0 * Math.PI;
+        }
+
+        while (headingErrorRad < -Math.PI) {
+            headingErrorRad += 2.0 * Math.PI;
+        }
+
+        lastHeadingOffsetDeg = Math.toDegrees(headingErrorRad);
+        double forwardMove =1;
+        double turnAngle = lastHeadingOffsetDeg+Math.copySign(5,lastHeadingOffsetDeg);
+        Actions.runBlocking(
+                drive.actionBuilder(currentPose)
+                        .splineTo(new Vector2d(currentPose.position.x+forwardMove*Math.cos(currentPose.heading.toDouble()+Math.toRadians(turnAngle))
+                                        ,currentPose.position.y+forwardMove*Math.sin(currentPose.heading.toDouble()+Math.toRadians(turnAngle)))
+                                ,currentPose.heading.toDouble()+Math.toRadians(turnAngle))
+                        .build()
+        );
+        /*
+        Actions.runBlocking(
+                drive.actionBuilder(currentPose)
+                        .turn(headingErrorRad)
+                        .build()
+        );
+
+         */
+
+        drive.updatePoseEstimate();
+
+        currentPose = drive.localizer.getPose();
+
+        rx = currentPose.position.x;
+        ry = currentPose.position.y;
+
+        rHeading = currentPose.heading.toDouble();
+        angleBeta2 = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+rHeading;  //added by FX for pointing correction
+
+        trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
+        trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
+
+        dx = selectedHiveTarget.x - trackPosX; //added by FX for pointing correction
+        dy = selectedHiveTarget.y - trackPosY; //added by FX for pointing correction
+
+        hiveDistance = Math.hypot(dx, dy);
+
+        angleToHiveRad = Math.atan2(dy, dx);
+
+        // SHOOTER FACES BACKWARD
+        targetShooterHeadingRad = angleToHiveRad + Math.PI;
+
+        headingErrorRad = targetShooterHeadingRad - rHeading;
+
+        while (headingErrorRad > Math.PI) {
+            headingErrorRad -= 2.0 * Math.PI;
+        }
+
+        while (headingErrorRad < -Math.PI) {
+            headingErrorRad += 2.0 * Math.PI;
+        }
+
+        lastHeadingOffsetDeg = Math.toDegrees(headingErrorRad);
+        return true;
+
     }
 
     public boolean isHiveAlignActive() {
@@ -576,12 +692,22 @@ public class Shooter {
             drive.updatePoseEstimate();
 
             Pose2d pose = drive.localizer.getPose();
+            //adding correction to the point betewen two shooters, based on the road runner tracking point; FX 11/18/26
+            double heading= pose.heading.toDouble();
+            double angleBeta = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+heading;
+
+            double newX=pose.position.x+trackingL*Math.cos(angleBeta);
+            double newY=pose.position.y+trackingL*Math.sin(angleBeta);
+
 
             hiveDistance = Math.hypot(
-                    selectedHiveTarget.x - pose.position.x,
-                    selectedHiveTarget.y - pose.position.y
+                    selectedHiveTarget.x - newX,    // this is changed
+                    selectedHiveTarget.y - newY    //this is changed
+                    //selectedHiveTarget.x - pose.position.x,
+                    //selectedHiveTarget.y - pose.position.y
             );
         }
+        // end of editing on adding correction FX 11/18.26
 
         double x = Math.max(1.0, hiveDistance);
 
