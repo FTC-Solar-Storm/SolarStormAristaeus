@@ -4,8 +4,9 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.teamcode.Subsystems.Intake;
+import org.firstinspires.ftc.teamcode.TankDrive;
 import org.firstinspires.ftc.teamcode.ThreeDeadWheelLocalizer;
+import org.firstinspires.ftc.teamcode.TwoDeadWheelLocalizer;
 
 public final class ManualFeedbackTuner extends LinearOpMode {
     public static double DISTANCE = 64;
@@ -15,8 +16,8 @@ public final class ManualFeedbackTuner extends LinearOpMode {
         if (TuningOpModes.DRIVE_CLASS.equals(ThreeDeadWheelLocalizer.MecanumDrive.class)) {
             ThreeDeadWheelLocalizer.MecanumDrive drive = new ThreeDeadWheelLocalizer.MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
             
-            if (drive.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
-                if (Intake.TankDrive.TwoDeadWheelLocalizer.PARAMS.perpXTicks == 0 && Intake.TankDrive.TwoDeadWheelLocalizer.PARAMS.parYTicks == 0) {
+            if (drive.localizer instanceof TwoDeadWheelLocalizer) {
+                if (TwoDeadWheelLocalizer.PARAMS.perpXTicks == 0 && TwoDeadWheelLocalizer.PARAMS.parYTicks == 0) {
                     throw new RuntimeException("Odometry wheel locations not set! Run AngularRampLogger to tune them.");
                 }
             } else if (drive.localizer instanceof ThreeDeadWheelLocalizer) {
@@ -33,11 +34,11 @@ public final class ManualFeedbackTuner extends LinearOpMode {
                             .lineToX(0)
                             .build());
             }
-        } else if (TuningOpModes.DRIVE_CLASS.equals(Intake.TankDrive.class)) {
-            Intake.TankDrive drive = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+        } else if (TuningOpModes.DRIVE_CLASS.equals(TankDrive.class)) {
+            TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
 
-            if (drive.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
-                if (Intake.TankDrive.TwoDeadWheelLocalizer.PARAMS.perpXTicks == 0 && Intake.TankDrive.TwoDeadWheelLocalizer.PARAMS.parYTicks == 0) {
+            if (drive.localizer instanceof TwoDeadWheelLocalizer) {
+                if (TwoDeadWheelLocalizer.PARAMS.perpXTicks == 0 && TwoDeadWheelLocalizer.PARAMS.parYTicks == 0) {
                     throw new RuntimeException("Odometry wheel locations not set! Run AngularRampLogger to tune them.");
                 }
             } else if (drive.localizer instanceof ThreeDeadWheelLocalizer) {

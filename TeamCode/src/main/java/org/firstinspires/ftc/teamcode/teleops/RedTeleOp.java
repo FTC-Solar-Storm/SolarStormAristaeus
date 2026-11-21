@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.Subsystems.ColorVision;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.TankDrive;
 
 @TeleOp(name = "Red TeleOp", group = "TeleOp")
 public class RedTeleOp extends LinearOpMode {
@@ -24,7 +25,7 @@ public class RedTeleOp extends LinearOpMode {
                 FtcDashboard.getInstance().getTelemetry()
         );
 
-        Intake.TankDrive drive = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+        TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Intake intake = new Intake(hardwareMap, telemetry);
         Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
         ColorVision vision = new ColorVision(hardwareMap);

@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.Subsystems.ColorVision;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.TankDrive;
 
 @TeleOp(name = "SimpleDrive")
 public class simpledrive extends LinearOpMode {
@@ -25,7 +26,7 @@ public class simpledrive extends LinearOpMode {
                 FtcDashboard.getInstance().getTelemetry()
         );
 
-        Intake.TankDrive drive = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+        TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Intake intake = new Intake(hardwareMap, telemetry);
         Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
         ColorVision vision = new ColorVision(hardwareMap);
@@ -80,8 +81,13 @@ public class simpledrive extends LinearOpMode {
                 shooter.stop();
             }
 
+            intake.moveNectar(gamepad1.dpadUpWasPressed());
+            intake.moveFlower(gamepad1.leftBumperWasPressed());
+
             // Manual Hood Adjustments
             shooter.adjustRightHood(gamepad1.yWasPressed(), gamepad1.aWasPressed());
+            shooter.adjustRightHood(gamepad2.dpadUpWasPressed(),gamepad2.dpadDownWasPressed());
+            shooter.adjustLeftHood(gamepad2.dpadRightWasPressed(),gamepad2.dpadLeftWasPressed());
             shooter.adjustLeftHood(gamepad1.xWasPressed(), gamepad1.bWasPressed());
 
             // Apply PIDF
@@ -111,11 +117,12 @@ public class simpledrive extends LinearOpMode {
             telemetry.addLine("Gamepad 2 A: Auto-Set Shooter from Distance");
             telemetry.addLine("Gamepad 2 Right Bumper: Toggle Gate");
 
-            telemetry.addLine("\n========== SHOOTER ==========");
+            telemetry.addLine("\n========== SHOOTER/Intake ==========");
             telemetry.addData("Right Flywheel Vel", "%.1f", shooter.getFlywheel1Velocity());
             telemetry.addData("Left Flywheel Vel", "%.1f", shooter.getFlywheel2Velocity());
             telemetry.addData("Right Hood Pos", "%.2f", shooter.getRightHoodPosition());
             telemetry.addData("Left Hood Pos", "%.2f", shooter.getLeftHoodPosition());
+
 
             telemetry.addLine("\n========== HIVE AUTO ALIGN ==========");
             telemetry.addData("Target Hive", shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")");

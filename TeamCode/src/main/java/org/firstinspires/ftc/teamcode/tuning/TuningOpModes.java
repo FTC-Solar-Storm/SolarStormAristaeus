@@ -42,8 +42,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
 import org.firstinspires.ftc.teamcode.OTOSLocalizer;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
-import org.firstinspires.ftc.teamcode.Subsystems.Intake;
+import org.firstinspires.ftc.teamcode.TankDrive;
 import org.firstinspires.ftc.teamcode.ThreeDeadWheelLocalizer;
+import org.firstinspires.ftc.teamcode.TwoDeadWheelLocalizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +52,7 @@ import java.util.List;
 
 public final class TuningOpModes {
     // TODO: change this to TankDrive.class if you're using tank
-    public static final Class<?> DRIVE_CLASS = Intake.TankDrive.class;
+    public static final Class<?> DRIVE_CLASS = TankDrive.class;
 
     public static final String GROUP = "quickstart";
     public static final boolean DISABLED = false;
@@ -153,8 +154,8 @@ public final class TuningOpModes {
                     parEncs.add(new EncoderRef(0, 0));
                     parEncs.add(new EncoderRef(0, 1));
                     perpEncs.add(new EncoderRef(0, 2));
-                } else if (md.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
-                    Intake.TankDrive.TwoDeadWheelLocalizer dl = (Intake.TankDrive.TwoDeadWheelLocalizer) md.localizer;
+                } else if (md.localizer instanceof TwoDeadWheelLocalizer) {
+                    TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) md.localizer;
                     encoderGroups.add(new LynxQuadratureEncoderGroup(
                             hardwareMap.getAll(LynxModule.class),
                             Arrays.asList(dl.par, dl.perp)
@@ -204,16 +205,16 @@ public final class TuningOpModes {
                         0
                 );
             };
-        } else if (DRIVE_CLASS.equals(Intake.TankDrive.class)) {
+        } else if (DRIVE_CLASS.equals(TankDrive.class)) {
             dvf = hardwareMap -> {
-                Intake.TankDrive td = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+                TankDrive td = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
                 LazyImu lazyImu = td.lazyImu;
 
                 List<EncoderGroup> encoderGroups = new ArrayList<>();
                 List<EncoderRef> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
                 List<EncoderRef> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
-                if (td.localizer instanceof Intake.TankDrive.DriveLocalizer) {
-                    Intake.TankDrive.DriveLocalizer dl = (Intake.TankDrive.DriveLocalizer) td.localizer;
+                if (td.localizer instanceof TankDrive.DriveLocalizer) {
+                    TankDrive.DriveLocalizer dl = (TankDrive.DriveLocalizer) td.localizer;
                     List<Encoder> allEncoders = new ArrayList<>();
                     allEncoders.addAll(dl.leftEncs);
                     allEncoders.addAll(dl.rightEncs);
@@ -236,8 +237,8 @@ public final class TuningOpModes {
                     parEncs.add(new EncoderRef(0, 0));
                     parEncs.add(new EncoderRef(0, 1));
                     perpEncs.add(new EncoderRef(0, 2));
-                } else if (td.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
-                    Intake.TankDrive.TwoDeadWheelLocalizer dl = (Intake.TankDrive.TwoDeadWheelLocalizer) td.localizer;
+                } else if (td.localizer instanceof TwoDeadWheelLocalizer) {
+                    TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) td.localizer;
                     encoderGroups.add(new LynxQuadratureEncoderGroup(
                             hardwareMap.getAll(LynxModule.class),
                             Arrays.asList(dl.par, dl.perp)
@@ -262,10 +263,10 @@ public final class TuningOpModes {
 
                 return new DriveView(
                         DriveType.TANK,
-                        Intake.TankDrive.PARAMS.inPerTick,
-                        Intake.TankDrive.PARAMS.maxWheelVel,
-                        Intake.TankDrive.PARAMS.minProfileAccel,
-                        Intake.TankDrive.PARAMS.maxProfileAccel,
+                        TankDrive.PARAMS.inPerTick,
+                        TankDrive.PARAMS.maxWheelVel,
+                        TankDrive.PARAMS.minProfileAccel,
+                        TankDrive.PARAMS.maxProfileAccel,
                         encoderGroups,
                         td.leftMotors,
                         td.rightMotors,
@@ -275,9 +276,9 @@ public final class TuningOpModes {
                         perpEncs,
                         lazyImu,
                         td.voltageSensor,
-                        () -> new MotorFeedforward(Intake.TankDrive.PARAMS.kS,
-                                Intake.TankDrive.PARAMS.kV / Intake.TankDrive.PARAMS.inPerTick,
-                                Intake.TankDrive.PARAMS.kA / Intake.TankDrive.PARAMS.inPerTick),
+                        () -> new MotorFeedforward(TankDrive.PARAMS.kS,
+                                TankDrive.PARAMS.kV / TankDrive.PARAMS.inPerTick,
+                                TankDrive.PARAMS.kA / TankDrive.PARAMS.inPerTick),
                         0
                 );
             };
