@@ -40,12 +40,10 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
-import org.firstinspires.ftc.teamcode.MecanumDrive;
 import org.firstinspires.ftc.teamcode.OTOSLocalizer;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
-import org.firstinspires.ftc.teamcode.TankDrive;
+import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.ThreeDeadWheelLocalizer;
-import org.firstinspires.ftc.teamcode.TwoDeadWheelLocalizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +51,7 @@ import java.util.List;
 
 public final class TuningOpModes {
     // TODO: change this to TankDrive.class if you're using tank
-    public static final Class<?> DRIVE_CLASS = TankDrive.class;
+    public static final Class<?> DRIVE_CLASS = Intake.TankDrive.class;
 
     public static final String GROUP = "quickstart";
     public static final boolean DISABLED = false;
@@ -128,16 +126,16 @@ public final class TuningOpModes {
         if (DISABLED) return;
 
         DriveViewFactory dvf;
-        if (DRIVE_CLASS.equals(MecanumDrive.class)) {
+        if (DRIVE_CLASS.equals(ThreeDeadWheelLocalizer.MecanumDrive.class)) {
             dvf = hardwareMap -> {
-                MecanumDrive md = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
+                ThreeDeadWheelLocalizer.MecanumDrive md = new ThreeDeadWheelLocalizer.MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
                 LazyImu lazyImu = md.lazyImu;
 
                 List<EncoderGroup> encoderGroups = new ArrayList<>();
                 List<EncoderRef> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
                 List<EncoderRef> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
-                if (md.localizer instanceof MecanumDrive.DriveLocalizer) {
-                    MecanumDrive.DriveLocalizer dl = (MecanumDrive.DriveLocalizer) md.localizer;
+                if (md.localizer instanceof ThreeDeadWheelLocalizer.MecanumDrive.DriveLocalizer) {
+                    ThreeDeadWheelLocalizer.MecanumDrive.DriveLocalizer dl = (ThreeDeadWheelLocalizer.MecanumDrive.DriveLocalizer) md.localizer;
                     encoderGroups.add(new LynxQuadratureEncoderGroup(
                             hardwareMap.getAll(LynxModule.class),
                             Arrays.asList(dl.leftFront, dl.leftBack, dl.rightFront, dl.rightBack)
@@ -155,8 +153,8 @@ public final class TuningOpModes {
                     parEncs.add(new EncoderRef(0, 0));
                     parEncs.add(new EncoderRef(0, 1));
                     perpEncs.add(new EncoderRef(0, 2));
-                } else if (md.localizer instanceof TwoDeadWheelLocalizer) {
-                    TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) md.localizer;
+                } else if (md.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
+                    Intake.TankDrive.TwoDeadWheelLocalizer dl = (Intake.TankDrive.TwoDeadWheelLocalizer) md.localizer;
                     encoderGroups.add(new LynxQuadratureEncoderGroup(
                             hardwareMap.getAll(LynxModule.class),
                             Arrays.asList(dl.par, dl.perp)
@@ -181,10 +179,10 @@ public final class TuningOpModes {
 
                 return new DriveView(
                     DriveType.MECANUM,
-                        MecanumDrive.PARAMS.inPerTick,
-                        MecanumDrive.PARAMS.maxWheelVel,
-                        MecanumDrive.PARAMS.minProfileAccel,
-                        MecanumDrive.PARAMS.maxProfileAccel,
+                        ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.inPerTick,
+                        ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.maxWheelVel,
+                        ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.minProfileAccel,
+                        ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.maxProfileAccel,
                         encoderGroups,
                         Arrays.asList(
                                 md.leftFront,
@@ -200,22 +198,22 @@ public final class TuningOpModes {
                         perpEncs,
                         lazyImu,
                         md.voltageSensor,
-                        () -> new MotorFeedforward(MecanumDrive.PARAMS.kS,
-                                MecanumDrive.PARAMS.kV / MecanumDrive.PARAMS.inPerTick,
-                                MecanumDrive.PARAMS.kA / MecanumDrive.PARAMS.inPerTick),
+                        () -> new MotorFeedforward(ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.kS,
+                                ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.kV / ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.inPerTick,
+                                ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.kA / ThreeDeadWheelLocalizer.MecanumDrive.PARAMS.inPerTick),
                         0
                 );
             };
-        } else if (DRIVE_CLASS.equals(TankDrive.class)) {
+        } else if (DRIVE_CLASS.equals(Intake.TankDrive.class)) {
             dvf = hardwareMap -> {
-                TankDrive td = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+                Intake.TankDrive td = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
                 LazyImu lazyImu = td.lazyImu;
 
                 List<EncoderGroup> encoderGroups = new ArrayList<>();
                 List<EncoderRef> leftEncs = new ArrayList<>(), rightEncs = new ArrayList<>();
                 List<EncoderRef> parEncs = new ArrayList<>(), perpEncs = new ArrayList<>();
-                if (td.localizer instanceof TankDrive.DriveLocalizer) {
-                    TankDrive.DriveLocalizer dl = (TankDrive.DriveLocalizer) td.localizer;
+                if (td.localizer instanceof Intake.TankDrive.DriveLocalizer) {
+                    Intake.TankDrive.DriveLocalizer dl = (Intake.TankDrive.DriveLocalizer) td.localizer;
                     List<Encoder> allEncoders = new ArrayList<>();
                     allEncoders.addAll(dl.leftEncs);
                     allEncoders.addAll(dl.rightEncs);
@@ -238,8 +236,8 @@ public final class TuningOpModes {
                     parEncs.add(new EncoderRef(0, 0));
                     parEncs.add(new EncoderRef(0, 1));
                     perpEncs.add(new EncoderRef(0, 2));
-                } else if (td.localizer instanceof TwoDeadWheelLocalizer) {
-                    TwoDeadWheelLocalizer dl = (TwoDeadWheelLocalizer) td.localizer;
+                } else if (td.localizer instanceof Intake.TankDrive.TwoDeadWheelLocalizer) {
+                    Intake.TankDrive.TwoDeadWheelLocalizer dl = (Intake.TankDrive.TwoDeadWheelLocalizer) td.localizer;
                     encoderGroups.add(new LynxQuadratureEncoderGroup(
                             hardwareMap.getAll(LynxModule.class),
                             Arrays.asList(dl.par, dl.perp)
@@ -264,10 +262,10 @@ public final class TuningOpModes {
 
                 return new DriveView(
                         DriveType.TANK,
-                        TankDrive.PARAMS.inPerTick,
-                        TankDrive.PARAMS.maxWheelVel,
-                        TankDrive.PARAMS.minProfileAccel,
-                        TankDrive.PARAMS.maxProfileAccel,
+                        Intake.TankDrive.PARAMS.inPerTick,
+                        Intake.TankDrive.PARAMS.maxWheelVel,
+                        Intake.TankDrive.PARAMS.minProfileAccel,
+                        Intake.TankDrive.PARAMS.maxProfileAccel,
                         encoderGroups,
                         td.leftMotors,
                         td.rightMotors,
@@ -277,9 +275,9 @@ public final class TuningOpModes {
                         perpEncs,
                         lazyImu,
                         td.voltageSensor,
-                        () -> new MotorFeedforward(TankDrive.PARAMS.kS,
-                                TankDrive.PARAMS.kV / TankDrive.PARAMS.inPerTick,
-                                TankDrive.PARAMS.kA / TankDrive.PARAMS.inPerTick),
+                        () -> new MotorFeedforward(Intake.TankDrive.PARAMS.kS,
+                                Intake.TankDrive.PARAMS.kV / Intake.TankDrive.PARAMS.inPerTick,
+                                Intake.TankDrive.PARAMS.kA / Intake.TankDrive.PARAMS.inPerTick),
                         0
                 );
             };
