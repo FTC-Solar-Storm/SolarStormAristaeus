@@ -21,10 +21,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Shooter {
 
     // TUNING VALUES
-    public static double FLYWHEEL_P = 10.0;
-    public static double FLYWHEEL_I = 3.0;
+    public static double FLYWHEEL_P = 16;
+    public static double FLYWHEEL_I = 0;
     public static double FLYWHEEL_D = 0.0;
-    public static double FLYWHEEL_F = 12.0;
+    public static double FLYWHEEL_F = 13.5;
 
     public static double VELOCITY_STEP = 50.0;
     public static double HOOD_STEP = 0.1;
@@ -45,7 +45,9 @@ public class Shooter {
     private double TRACKING_X_0=-6.07;
     private double TRACKING_Y_0=0.1;
 
-    private double trackingL=Math.hypot(TRACKING_Y_0,TRACKING_Y_0);
+    public double trackPosX =0 ;
+    public double trackPosY = 0;
+    public double trackingL=0;
 
     private boolean previousDpadUp, previousDpadDown;
 
@@ -416,7 +418,7 @@ public class Shooter {
      * 3. Automatically disables auto-align after 5 seconds timeout OR when toggled off manually.
      */
     public boolean updateHiveAutoAlign(boolean togglePressed, HiveTarget target) {
-
+        trackingL=Math.sqrt(TRACKING_Y_0*TRACKING_Y_0+TRACKING_X_0*TRACKING_X_0);
         if (togglePressed) {
 
             isHiveAlignActive = !isHiveAlignActive;
@@ -468,8 +470,8 @@ public class Shooter {
         double rHeading = currentPose.heading.toDouble();
         double angleBeta2 = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+rHeading;  //added by FX for pointing correction
 
-        double trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
-        double trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
+        trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
+        trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
 
         double dx = target.x - trackPosX; //added by FX for pointing correction
         double dy = target.y - trackPosY; //added by FX for pointing correction
@@ -548,7 +550,7 @@ public class Shooter {
     }
 
     public boolean hiveAutoAlign() {
-
+        trackingL=Math.sqrt(TRACKING_Y_0*TRACKING_Y_0+TRACKING_X_0*TRACKING_X_0);
         drive.updatePoseEstimate();
 
         Pose2d currentPose = drive.localizer.getPose();
@@ -559,8 +561,8 @@ public class Shooter {
         double rHeading = currentPose.heading.toDouble();
         double angleBeta2 = Math.PI+Math.atan(TRACKING_Y_0/TRACKING_X_0)+rHeading;  //added by FX for pointing correction
 
-        double trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
-        double trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
+        trackPosX=rx+trackingL*Math.cos(angleBeta2); //added by FX for pointing correction
+        trackPosY=ry+trackingL*Math.sin(angleBeta2); //added by FX for pointing correction
 
         double dx = selectedHiveTarget.x - trackPosX; //added by FX for pointing correction
         double dy = selectedHiveTarget.y - trackPosY; //added by FX for pointing correction
@@ -686,7 +688,7 @@ public class Shooter {
     // ==========================================
 
     public void autoSetShooterFromDistance() {
-
+        trackingL=Math.sqrt(TRACKING_Y_0*TRACKING_Y_0+TRACKING_X_0*TRACKING_X_0);
         if (drive != null) {
 
             drive.updatePoseEstimate();
@@ -720,13 +722,14 @@ public class Shooter {
         // CALCULATE HOOD POSITIONS
 
         double leftHoodPos = clamp(
-                1.71 + (-0.245 * Math.log(x)),
+                1.71 -0.245 * Math.log(x)+0.1, //add 0.1 offset 11/21
                 0.0,
                 1.0
         );
 
         double rightHoodPos = clamp(
-                1.71 + (-0.245 * Math.log(x)),
+                -0.612+0.0382*x-3.48E-4*x*x+0.05, //add 0.05 offset 11/21
+
                 0.0,
                 1.0
         );

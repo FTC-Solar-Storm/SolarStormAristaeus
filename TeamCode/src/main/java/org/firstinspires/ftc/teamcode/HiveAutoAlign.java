@@ -81,7 +81,9 @@ public class HiveAutoAlign extends LinearOpMode {
             telemetry.addData("Pose Y (in)", "%.2f", pose.position.y);
             telemetry.addData("Heading (deg)", "%.2f",
                     Math.toDegrees(pose.heading.toDouble()));
-
+            telemetry.addData("TrackingL value is :", shooter.trackingL);
+            telemetry.addData("Tracking Point X : ", shooter.trackPosX);
+            telemetry.addData("Tracking Point Y : ", shooter.trackPosY);
             telemetry.addLine("\n========== HIVE AUTO ALIGN ==========");
             telemetry.addData("Selected Target",
                     shooter.getSelectedHiveTarget().name);
