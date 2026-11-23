@@ -21,7 +21,20 @@ public class dominantHiveAuto extends LinearOpMode {
 
     private TankDrive drive;
 
+    private Pose2d startPose = new Pose2d(-59.7,16.26 , Math.toRadians(180));
+    private Pose2d backupFStart = new Pose2d(-21, 38.9, Math.toRadians(-139));
+    private Pose2d flowerReady = new Pose2d(-21, 38.9, Math.toRadians(90));
+
+    private Pose2d flowerIntake = new Pose2d(, , Math.toRadians());
+
     private Pose2d startPose = new Pose2d(, , Math.toRadians());
+
+    private Pose2d startPose = new Pose2d(, , Math.toRadians());
+    private Pose2d startPose = new Pose2d(, , Math.toRadians());
+
+    private Pose2d startPose = new Pose2d(, , Math.toRadians());
+
+
 
     @Override
     public void runOpMode() {
