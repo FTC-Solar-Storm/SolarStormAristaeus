@@ -42,53 +42,72 @@ public class simpledrive extends LinearOpMode {
         while (opModeIsActive()) {
 
             // Central Subsystem Update (Pose, Distance, Target Velocity Steps)
-            shooter.update(gamepad1.dpad_up, gamepad1.dpad_down);
+            shooter.update(gamepad1.dpad_up || gamepad2.dpad_up, gamepad1.dpad_down || gamepad2.dpad_down);
 
-            // Drive Inputs
+            // Drive Inputs (Gamepad 1)
             double forward = -gamepad1.left_stick_y;
             double turn = -gamepad1.right_stick_x;
+            boolean isDriving = Math.abs(forward) > 0.05 || Math.abs(turn) > 0.05;
 
-            // Hive Auto-Align (Button B = Auto-set shooter & align with 5s timeout / toggle off)
-            boolean hiveAlignActive = shooter.updateHiveAutoAlign(gamepad2.bWasPressed() || gamepad1.bWasPressed());
+            // Hive Auto-Align Trigger (Gamepad 2 B or Gamepad 1 B)
+            // Auto-sets RPM and hoods from distance immediately when auto-align starts
+            boolean alignTriggered = gamepad2.bWasPressed() || gamepad1.bWasPressed();
+            if (alignTriggered) {
+                shooter.autoSetShooterFromDistance();
+            }
+            boolean hiveAlignActive = shooter.updateHiveAutoAlign(alignTriggered);
 
-            // Target Hive Selection & Auto Shooter Distance Config
+            // Target Hive Selection & Auto Shooter Distance Config (Gamepad 2)
             if (gamepad2.xWasPressed()) shooter.cycleHiveTarget();
             if (gamepad2.aWasPressed()) shooter.autoSetShooterFromDistance();
 
-            // Color Vision Auto Pickup
-            boolean autoPickupActive = vision.updateAutoPickup(gamepad1.rightBumperWasPressed(), drive, intake);
+            // Color Vision Auto Pickup (Gamepad 1 Right Bumper or Gamepad 2 Left Bumper)
+            boolean autoPickupActive = vision.updateAutoPickup(gamepad1.rightBumperWasPressed() || gamepad2.leftBumperWasPressed(), drive, intake);
 
             // Manual Drive
             if (!autoPickupActive && !hiveAlignActive) {
                 drive.setDrivePowers(new PoseVelocity2d(new Vector2d(forward, 0), turn));
             }
 
-            // Gate Servo Toggle
-            intake.moveGate(gamepad2.rightBumperWasPressed());
+            // Robot motion check (driving, auto-aligning, or auto-pickup)
+            boolean isRobotMoving = isDriving || hiveAlignActive || autoPickupActive;
 
-            // Manual Intake Motor
-            double intakePower = gamepad1.left_trigger * 0.6;
-            if (!vision.isAutoPickupActive()) {
-                intake.intakeMotor.setPower(intakePower);
-                intake.left.setPower(-intakePower);
-                intake.right.setPower(intakePower);
+            // Manual Gate Toggle (Gamepad 2 ONLY)
+            if (gamepad2.rightBumperWasPressed()) {
+                intake.toggleGate();
             }
 
-            // Shooter Flywheel Motors
-            if (gamepad1.right_trigger > 0.1) {
+            // Auto-close gate when robot is moving (does NOT automatically reopen when stopped)
+            if (isRobotMoving && intake.isGateOpen) {
+                intake.closeGate();
+            }
+
+            // Intake & Outtake Controls (Gamepad 1 Triggers)
+            if (!vision.isAutoPickupActive()) {
+                double intakeVal = gamepad1.right_trigger;   // Right Trigger: Intake
+                double outtakeVal = gamepad1.left_trigger;    // Left Trigger: Outtake
+                double netPower = (intakeVal - outtakeVal) * 0.8;
+
+                intake.intakeMotor.setPower(netPower);
+                intake.left.setPower(-netPower);
+                intake.right.setPower(netPower);
+            }
+
+            // Shooter Flywheels (Gamepad 2 ONLY)
+            boolean spinShooter = gamepad2.right_trigger > 0.1;
+            if (spinShooter) {
                 shooter.spin();
             } else {
                 shooter.stop();
             }
 
-            intake.moveNectar(gamepad1.dpadUpWasPressed());
+            // Flower & Nectar Controls (Gamepad 1)
             intake.moveFlower(gamepad1.leftBumperWasPressed());
+            intake.moveNectar(gamepad1.yWasPressed());
 
-            // Manual Hood Adjustments
-            shooter.adjustRightHood(gamepad1.yWasPressed(), gamepad1.aWasPressed());
-            shooter.adjustRightHood(gamepad2.dpadUpWasPressed(),gamepad2.dpadDownWasPressed());
-            shooter.adjustLeftHood(gamepad2.dpadRightWasPressed(),gamepad2.dpadLeftWasPressed());
-            shooter.adjustLeftHood(gamepad1.xWasPressed(), gamepad1.bWasPressed());
+            // Manual Hood Adjustments (Gamepad 2 D-Pad)
+            shooter.adjustRightHood(gamepad2.yWasPressed(), gamepad2.aWasPressed());
+            shooter.adjustLeftHood(gamepad2.dpadRightWasPressed(), gamepad2.dpadLeftWasPressed());
 
             // Apply PIDF
             shooter.applyPIDF();
@@ -105,24 +124,26 @@ public class simpledrive extends LinearOpMode {
             telemetry.addData("Heading (deg)", "%.2f", Math.toDegrees(currentPose.heading.toDouble()));
 
             telemetry.addLine("\n========== CONTROLS ==========");
-            telemetry.addLine("Left Stick Y / Right Stick X: Manual Drive");
-            telemetry.addLine("Left Trigger: Manual Intake");
-            telemetry.addLine("Right Bumper (Gamepad 1): Color Vision Auto Pickup");
-            telemetry.addLine("Right Trigger: Spin Flywheels");
-            telemetry.addLine("D-Pad Up/Down: Manual Speed Step");
-            telemetry.addLine("Gamepad 1 Y/A: Right Hood Adjust");
-            telemetry.addLine("Gamepad 1 X/B: Left Hood Adjust");
-            telemetry.addLine("Gamepad 2 B / Gamepad 1 B: Auto Shooter & Hive Align (5s)");
-            telemetry.addLine("Gamepad 2 X: Cycle Target Hive");
-            telemetry.addLine("Gamepad 2 A: Auto-Set Shooter from Distance");
-            telemetry.addLine("Gamepad 2 Right Bumper: Toggle Gate");
+            telemetry.addLine("GP1 Left Stick Y / Right Stick X: Drive");
+            telemetry.addLine("GP1 Right Trigger: Intake");
+            telemetry.addLine("GP1 Left Trigger: Outtake");
+            telemetry.addLine("GP1 Right Bumper: Color Vision Auto Pickup");
+            telemetry.addLine("GP1 Left Bumper: Toggle Flower");
+            telemetry.addLine("GP1 Y: Toggle Nectar Gate");
+            telemetry.addLine("GP1 B / GP2 B: Auto Align Hive & Auto Set RPM");
+            telemetry.addLine("GP2 RT: Spin Flywheels (Shoot)");
+            telemetry.addLine("GP2 RB: Toggle Gate (Auto-closes on move)");
+            telemetry.addLine("GP2 X: Cycle Target Hive");
+            telemetry.addLine("GP2 A: Auto Set RPM from Distance");
+            telemetry.addLine("GP2 D-Pad: Hood Adjustments");
 
-            telemetry.addLine("\n========== SHOOTER/Intake ==========");
+            telemetry.addLine("\n========== STATUS ==========");
+            telemetry.addData("Gate Open", intake.isGateOpen ? "YES" : "NO");
+            telemetry.addData("Robot Moving", isRobotMoving ? "YES" : "NO");
             telemetry.addData("Right Flywheel Vel", "%.1f", shooter.getFlywheel1Velocity());
             telemetry.addData("Left Flywheel Vel", "%.1f", shooter.getFlywheel2Velocity());
             telemetry.addData("Right Hood Pos", "%.2f", shooter.getRightHoodPosition());
             telemetry.addData("Left Hood Pos", "%.2f", shooter.getLeftHoodPosition());
-
 
             telemetry.addLine("\n========== HIVE AUTO ALIGN ==========");
             telemetry.addData("Target Hive", shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")");

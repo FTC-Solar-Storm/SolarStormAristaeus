@@ -39,16 +39,31 @@ public final class Intake {
     }
 
     public boolean gateUp = true;
+    public boolean isGateOpen = false;
+
+    public void closeGate() {
+        gate.setPosition(0.0);
+        isGateOpen = false;
+        gateUp = true;
+    }
+
+    public void openGate() {
+        gate.setPosition(0.35);
+        isGateOpen = true;
+        gateUp = false;
+    }
+
+    public void toggleGate() {
+        if (isGateOpen) {
+            closeGate();
+        } else {
+            openGate();
+        }
+    }
 
     public void moveGate(boolean gatebutton) {
         if (gatebutton) {
-            if (gateUp) {
-                gate.setPosition(0.35);
-                gateUp = !gateUp;
-            } else {
-                gate.setPosition(0);
-                gateUp = !gateUp;
-            }
+            toggleGate();
         }
     }
 
