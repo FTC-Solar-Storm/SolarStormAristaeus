@@ -42,13 +42,13 @@ public final class Intake {
     public boolean isGateOpen = false;
 
     public void closeGate() {
-        gate.setPosition(0.0);
+        gate.setPosition(0.35);
         isGateOpen = false;
         gateUp = true;
     }
 
     public void openGate() {
-        gate.setPosition(0.35);
+        gate.setPosition(0.0);
         isGateOpen = true;
         gateUp = false;
     }

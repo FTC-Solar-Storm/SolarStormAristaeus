@@ -506,36 +506,25 @@ public class Shooter {
             isHiveAlignActive = false;
 
             return false;
-        } else{  // try this original method FX 11/18/26
+        } else {
+            // PROPORTIONAL TURNING (Turn in place to align to Hive)
+            double turnPower = lastHeadingOffsetDeg * 0.02;
+
+            double magnitude = Math.max(0.20, Math.abs(turnPower));
+
+            turnPower = Math.copySign(magnitude, turnPower);
+
+            turnPower = clamp(turnPower, -0.8, 0.8);
+
             drive.setDrivePowers(
                     new PoseVelocity2d(
-                            new Vector2d(2, 0),
-                            headingErrorRad
+                            new Vector2d(0, 0),
+                            turnPower
                     )
             );
+
             return true;
         }
-
-        /* This part doesn't make any sense; removed by FX 11/18/2026
-        // ORIGINAL PROPORTIONAL TURNING
-        double turnPower = lastHeadingOffsetDeg * 0.02;
-
-        double magnitude = Math.max(0.20, Math.abs(turnPower));
-
-        turnPower = Math.copySign(magnitude, turnPower);
-
-        turnPower = clamp(turnPower, -0.8, 0.8);
-
-        drive.setDrivePowers(
-                new PoseVelocity2d(
-                        new Vector2d(0, 0),
-                        turnPower
-                )
-        );
-
-        return true;
-
-         */
     }
 
     // ORIGINAL OVERLOADED METHOD
