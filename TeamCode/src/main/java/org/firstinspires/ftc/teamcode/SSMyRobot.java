@@ -19,12 +19,12 @@ public class SSMyRobot {
 
     private final Shooter shooter;
     private final Intake intake;
-    private final Intake.TankDrive drive;
+    private final TankDrive drive;
     private final HardwareMap myHardwareMap;
     public final FtcDashboard dashboard;
     public ElapsedTime generalTimer = new ElapsedTime();
 
-    public SSMyRobot(HardwareMap hardwareMap, Intake.TankDrive drive, Intake intake, Shooter shooter, Pose2d startPose) {
+    public SSMyRobot(HardwareMap hardwareMap, TankDrive drive, Intake intake, Shooter shooter, Pose2d startPose) {
         this.myHardwareMap = hardwareMap;
         this.drive = drive;
         this.intake = intake;

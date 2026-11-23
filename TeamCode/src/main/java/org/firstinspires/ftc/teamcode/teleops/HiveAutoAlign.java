@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.TankDrive;
 
 @TeleOp(name = "Hive Auto Align", group = "TeleOp")
 public class HiveAutoAlign extends LinearOpMode {
@@ -16,7 +17,7 @@ public class HiveAutoAlign extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        Intake.TankDrive drive = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
+        TankDrive drive = new TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Intake intake = new Intake(hardwareMap, telemetry);
         Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
 

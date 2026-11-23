@@ -12,15 +12,16 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.TankDrive;
 
 @Config
 public class Shooter {
 
     // TUNING VALUES
-    public static double FLYWHEEL_P = 10.0;
+    public static double FLYWHEEL_P = 16.0;
     public static double FLYWHEEL_I = 3.0;
     public static double FLYWHEEL_D = 0.0;
-    public static double FLYWHEEL_F = 12.0;
+    public static double FLYWHEEL_F = 13.5;
 
     public static double VELOCITY_STEP = 50.0;
     public static double HOOD_STEP = 0.1;
@@ -29,7 +30,7 @@ public class Shooter {
 
     private final Servo rightShooterHood, leftShooterHood;
 
-    private final Intake.TankDrive drive;
+    private final TankDrive drive;
 
     // MANUAL TARGET VELOCITY
     private double targetVelocity = 50;
@@ -78,7 +79,7 @@ public class Shooter {
     // CONSTRUCTOR
     // ==========================================
 
-    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, Intake.TankDrive drive) {
+    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, TankDrive drive) {
 
         this.drive = drive;
 
@@ -608,7 +609,7 @@ public class Shooter {
         );
 
         double rightHoodPos = clamp(
-                1.71 + (-0.245 * Math.log(x)),
+                -0.612 + (0.0382 * x) + (-3.48e-4 * x * x),
                 0.0,
                 1.0
         );

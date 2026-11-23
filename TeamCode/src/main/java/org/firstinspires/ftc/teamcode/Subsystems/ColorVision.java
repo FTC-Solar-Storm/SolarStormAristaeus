@@ -13,6 +13,7 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 import org.openftc.easyopencv.OpenCvPipeline;
+import org.firstinspires.ftc.teamcode.TankDrive;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -113,7 +114,7 @@ public class ColorVision {
      */
     public boolean updateAutoPickup(
             boolean togglePressed,
-            Intake.TankDrive drive,
+            TankDrive drive,
             Intake intake
     ) {
 
@@ -177,7 +178,7 @@ public class ColorVision {
     /**
      * Stops the drive and intake safely without null pointer exceptions.
      */
-    private void stopPickup(Intake.TankDrive drive, Intake intake) {
+    private void stopPickup(TankDrive drive, Intake intake) {
 
         if (drive != null) {
             drive.setDrivePowers(
