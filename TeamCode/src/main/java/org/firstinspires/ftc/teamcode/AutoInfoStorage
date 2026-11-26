@@ -1,0 +1,55 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.PoseVelocity2d;
+import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.ftc.Actions;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+/**
+ * Turret subsystem - with moveable turret base for aiming
+ */
+public final class RobotInfoStorage {
+
+    // ==================== PARAMETERS ====================
+    public class Params {
+
+    }
+    public Params PARAMS = new Params();
+
+    // ==================== HARDWARE ====================
+
+    //public  TankDrive drive;
+    public static Pose2d autoEndPose = new Pose2d(0,0,0);
+
+    // ==================== DISTANCE MEASUREMENT ====================
+
+    //public final Vector2d targetPos = new Vector2d(-53, -60); // Turret target position (in ticks)
+    //public int turretTargetPosition = 0;
+
+    // Motiff detection (added back from old code)
+    //public String[] motiff = {"N", "N", "N"};
+
+    // ==================== CONSTRUCTOR ====================
+    public RobotInfoStorage() {
+
+      //  this.drive =myDrive;
+
+
+    }
+
+    // ==================== PUBLIC API ====================
+
+
+}
