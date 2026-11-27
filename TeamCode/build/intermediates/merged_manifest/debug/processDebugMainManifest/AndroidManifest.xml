@@ -199,6 +199,11 @@
             android:label="@string/app_name" >
         </activity>
         <activity
+            android:name="com.qualcomm.ftccommon.configuration.ConfigurationTreeActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/title_activity_config_tree" >
+        </activity>
+        <activity
             android:name="com.qualcomm.ftccommon.configuration.FtcNewFileActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name" >
