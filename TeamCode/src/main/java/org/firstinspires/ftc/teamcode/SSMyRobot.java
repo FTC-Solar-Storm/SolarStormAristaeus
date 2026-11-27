@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.Subsystems.CameraLL;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooter;
 
@@ -22,15 +23,18 @@ public class SSMyRobot {
     private final TankDrive drive;
     private final HardwareMap myHardwareMap;
     public final FtcDashboard dashboard;
+
+    private final CameraLL camera;
     public ElapsedTime generalTimer = new ElapsedTime();
 
-    public SSMyRobot(HardwareMap hardwareMap, TankDrive drive, Intake intake, Shooter shooter, Pose2d startPose) {
+    public SSMyRobot(HardwareMap hardwareMap, TankDrive drive, Intake intake, Shooter shooter, Pose2d startPose, CameraLL camera) {
         this.myHardwareMap = hardwareMap;
         this.drive = drive;
         this.intake = intake;
         this.shooter = shooter;
         this.dashboard = FtcDashboard.getInstance();
         this.generalTimer.reset();
+        this.camera = camera;
 
         if (this.drive != null && startPose != null) {
             this.drive.localizer.setPose(startPose);
@@ -150,7 +154,7 @@ public class SSMyRobot {
     public class OpenGate implements Action {
         @Override
         public boolean run(@NonNull TelemetryPacket pack) {
-            intake.gate.setPosition(0.35);
+            intake.gate.setPosition(0.25);
             return false;
         }
     }
@@ -159,12 +163,24 @@ public class SSMyRobot {
     public class CloseGate implements Action {
         @Override
         public boolean run(@NonNull TelemetryPacket pack) {
-            intake.gate.setPosition(0.0);
+            intake.gate.setPosition(0.4);
             return false;
         }
     }
     public Action closeGate() { return new CloseGate(); }
 
+
+
+
+
+    public class CloseNectarGate implements Action {
+        @Override
+        public boolean run(@NonNull TelemetryPacket pack) {
+            intake.nectarGate.setPosition(1.0);
+            return false;
+        }
+    }
+    public Action closeNectarGate() { return new CloseNectarGate(); }
     // ==========================================
     // ROBOT UPDATE ACTION
     // ==========================================

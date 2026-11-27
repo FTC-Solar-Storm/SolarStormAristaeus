@@ -1,16 +1,16 @@
-#Sun Nov 22 19:18:38 EST 2026
-base.0=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
-base.1=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeLibDexDebug/10/classes.dex
-base.10=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeExtDexDebug/classes2.dex
-base.11=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeExtDexDebug/classes3.dex
-base.2=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeLibDexDebug/11/classes.dex
-base.3=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeLibDexDebug/8/classes.dex
-base.4=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
-base.5=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/11/classes.dex
-base.6=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/12/classes.dex
-base.7=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/13/classes.dex
-base.8=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/15/classes.dex
-base.9=/home/atharva-bengeri/StudioProjects/SolarStormAristaeus/TeamCode/build/intermediates/dex/debug/mergeProjectDexDebug/3/classes.dex
+#Thu Nov 26 22:08:11 EST 2026
+base.0=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
+base.1=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeLibDexDebug\\10\\classes.dex
+base.10=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
+base.11=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes3.dex
+base.2=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeLibDexDebug\\11\\classes.dex
+base.3=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeLibDexDebug\\8\\classes.dex
+base.4=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.5=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\11\\classes.dex
+base.6=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\12\\classes.dex
+base.7=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\13\\classes.dex
+base.8=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\15\\classes.dex
+base.9=C\:\\FTC Software\\2026\\SolarStormAristaeus\\TeamCode\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\3\\classes.dex
 path.0=classes.dex
 path.1=10/classes.dex
 path.10=classes2.dex

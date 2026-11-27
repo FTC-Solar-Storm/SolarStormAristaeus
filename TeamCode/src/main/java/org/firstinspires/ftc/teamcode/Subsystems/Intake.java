@@ -43,10 +43,10 @@ public final class Intake {
     public void moveGate(boolean gatebutton) {
         if (gatebutton) {
             if (gateUp) {
-                gate.setPosition(0.35);
+                gate.setPosition(0.5);
                 gateUp = !gateUp;
             } else {
-                gate.setPosition(0);
+                gate.setPosition(0.2);
                 gateUp = !gateUp;
             }
         }
