@@ -20,7 +20,6 @@ import com.acmerobotics.roadrunner.PoseVelocity2dDual;
 import com.acmerobotics.roadrunner.ProfileAccelConstraint;
 import com.acmerobotics.roadrunner.ProfileParams;
 import com.acmerobotics.roadrunner.RamseteController;
-import com.acmerobotics.roadrunner.Rotation2d;
 import com.acmerobotics.roadrunner.TankKinematics;
 import com.acmerobotics.roadrunner.Time;
 import com.acmerobotics.roadrunner.TimeTrajectory;
@@ -44,8 +43,8 @@ import com.acmerobotics.roadrunner.ftc.RawEncoder;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
@@ -72,18 +71,18 @@ public final class TankDrive {
                 RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
 
         // drive model parameters
-        public double inPerTick = 0.0020;
-        public double trackWidthTicks = 5523.690583741631;
+        public double inPerTick = 0.00197;
+        public double trackWidthTicks = 8124.8;
 
         // feedforward parameters (in tick units)
-        public double kS = 0.9252235695030202;
-        public double kV = 0.00039745296800553035;
-        public double kA = 0.00001;
+        public double kS = 1.4;
+        public double kV = 0.0003773837490774318;
+        public double kA = 0.0001;
 
         // path profile parameters (in inches)
-        public double maxWheelVel = 50;
-        public double minProfileAccel = -30;
-        public double maxProfileAccel = 50;
+        public double maxWheelVel = 80;
+        public double minProfileAccel = -65;
+        public double maxProfileAccel = 80;
 
         // turn profile parameters (in radians)
         public double maxAngVel = Math.PI; // shared with path
@@ -94,8 +93,8 @@ public final class TankDrive {
         public double ramseteBBar = 2.0; // positive
 
         // turn controller gains
-        public double turnGain = 5.0;
-        public double turnVelGain = 1;
+        public double turnGain = 3;
+        public double turnVelGain = 1.2;
     }
 
     public static Params PARAMS = new Params();
@@ -195,7 +194,7 @@ public final class TankDrive {
             meanRightVel /= rightEncs.size();
 
             FlightRecorder.write("TANK_LOCALIZER_INPUTS",
-                     new TankLocalizerInputsMessage(leftReadings, rightReadings));
+                    new TankLocalizerInputsMessage(leftReadings, rightReadings));
 
             if (!initialized) {
                 initialized = true;
@@ -421,7 +420,7 @@ public final class TankDrive {
                     Vector2dDual.constant(new Vector2d(0, 0), 3),
                     txWorldTarget.heading.velocity().plus(
                             PARAMS.turnGain * localizer.getPose().heading.minus(txWorldTarget.heading.value()) +
-                            PARAMS.turnVelGain * (robotVelRobot.angVel - txWorldTarget.heading.velocity().value())
+                                    PARAMS.turnVelGain * (robotVelRobot.angVel - txWorldTarget.heading.velocity().value())
                     )
             );
             driveCommandWriter.write(new DriveCommandMessage(command));
@@ -435,6 +434,7 @@ public final class TankDrive {
 
             tankCommandWriter.write(new TankCommandMessage(voltage, leftPower, rightPower));
 
+// TURN DEBUG TELEMETRY
             // TURN DEBUG TELEMETRY
             p.put("Turn Left Power", leftPower);
             p.put("Turn Right Power", rightPower);
@@ -490,6 +490,7 @@ public final class TankDrive {
         }
 
         estimatedPoseWriter.write(new PoseMessage(localizer.getPose()));
+
 
         return vel;
     }

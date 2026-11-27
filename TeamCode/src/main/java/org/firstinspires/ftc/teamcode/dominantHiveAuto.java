@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.acmerobotics.roadrunner.Action;
@@ -77,7 +78,22 @@ public class dominantHiveAuto extends LinearOpMode {
                                 myRobot.autoSetShooterFromDistance(),
                                 myRobot.spinFlywheels(),
                                 myRobot.openGate(),
-                                myRobot.setIntakePower(0.6)
+                                myRobot.setIntakePower(0.6),
+                                new SleepAction(8),
+                                myRobot.setIntakePower(0.8),
+                                myRobot.closeGate(),
+                                drive.actionBuilder(startPose)
+                                        .setReversed(true)
+                                        .splineTo(backup.position, backup.heading)
+                                        .turnTo(backupTurn.heading)
+                                        .setReversed(false)
+                                        .splineTo(cornerReady.position, cornerReady.heading)
+                                        .splineTo(cornerEnd.position, cornerEnd.heading)
+                                        .setReversed(true)
+                                        .splineTo(backupTurn.position, backupTurn.heading)
+                                        .turnTo(backup.heading)
+                                        .build(),
+                                myRobot.setIntakePower(0)
 
                 )
 

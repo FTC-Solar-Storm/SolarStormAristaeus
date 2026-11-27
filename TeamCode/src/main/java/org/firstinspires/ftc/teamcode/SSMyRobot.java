@@ -154,7 +154,7 @@ public class SSMyRobot {
     public class OpenGate implements Action {
         @Override
         public boolean run(@NonNull TelemetryPacket pack) {
-            intake.gate.setPosition(0.25);
+            intake.gate.setPosition(0.3);
             return false;
         }
     }
