@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 /**
  * Turret subsystem - with moveable turret base for aiming
  */
-public final class RobotInfoStorage {
+public final class AutoInfoStorage {
 
     // ==================== PARAMETERS ====================
     public class Params {
@@ -42,7 +42,7 @@ public final class RobotInfoStorage {
     //public String[] motiff = {"N", "N", "N"};
 
     // ==================== CONSTRUCTOR ====================
-    public RobotInfoStorage() {
+    public AutoInfoStorage() {
 
       //  this.drive =myDrive;
 
