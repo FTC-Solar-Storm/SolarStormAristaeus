@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.Subsystems.CameraLL;
 import org.firstinspires.ftc.teamcode.Subsystems.ColorVision;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.PinpointLocalizer;
@@ -24,7 +25,7 @@ public class simpledrive extends LinearOpMode {
                 telemetry,
                 FtcDashboard.getInstance().getTelemetry()
         );
-
+        CameraLL camera = new CameraLL(hardwareMap);
         Intake.TankDrive drive = new Intake.TankDrive(hardwareMap, new Pose2d(0, 0, 0));
         Intake intake = new Intake(hardwareMap, telemetry);
         Shooter shooter = new Shooter(hardwareMap, telemetry, drive);
@@ -80,6 +81,12 @@ public class simpledrive extends LinearOpMode {
                 shooter.stop();
             }
 
+            if (drive.localizer.getPose().position.x > 0) {
+                camera.audienceSide = true;
+            } else {
+                camera.audienceSide = false;
+            }
+
             // Manual Hood Adjustments
             shooter.adjustRightHood(gamepad1.yWasPressed(), gamepad1.aWasPressed());
             shooter.adjustLeftHood(gamepad1.xWasPressed(), gamepad1.bWasPressed());
@@ -97,6 +104,7 @@ public class simpledrive extends LinearOpMode {
             telemetry.addData("Pose X (in)", "%.2f", currentPose.position.x);
             telemetry.addData("Pose Y (in)", "%.2f", currentPose.position.y);
             telemetry.addData("Heading (deg)", "%.2f", Math.toDegrees(currentPose.heading.toDouble()));
+
 
             telemetry.addLine("\n========== CONTROLS ==========");
             telemetry.addLine("Left Stick Y / Right Stick X: Manual Drive");
@@ -116,6 +124,9 @@ public class simpledrive extends LinearOpMode {
             telemetry.addData("Left Flywheel Vel", "%.1f", shooter.getFlywheel2Velocity());
             telemetry.addData("Right Hood Pos", "%.2f", shooter.getRightHoodPosition());
             telemetry.addData("Left Hood Pos", "%.2f", shooter.getLeftHoodPosition());
+            telemetry.addData("Tip?", camera.detectAprilTag());
+
+
 
             telemetry.addLine("\n========== HIVE AUTO ALIGN ==========");
             telemetry.addData("Target Hive", shooter.getSelectedHiveTarget().name + " (" + shooter.getSelectedHiveTarget().x + ", " + shooter.getSelectedHiveTarget().y + ")");

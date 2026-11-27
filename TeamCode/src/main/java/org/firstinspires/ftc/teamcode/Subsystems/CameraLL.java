@@ -16,10 +16,11 @@ public final class CameraLL {
         public static List<Integer> RED_AUD_TARGET_TAG_ID = Arrays.asList(34,35,36,37);
         public static List<Integer> RED_NOTAUD_TARGET_TAG_ID = Arrays.asList(30,31,32,33);
 
-        private static boolean audienceSide = false;
+
         public static String Alliance = "Blue";
         public static boolean tip = false;
     }
+    public boolean audienceSide = false;
     public Limelight3A limelight;
 
 
@@ -36,24 +37,27 @@ public final class CameraLL {
 
     }
 
-    public void detectAprilTag() {
+    public boolean detectAprilTag() {
         LLResult result = limelight.getLatestResult();
         if (result != null && result.isValid()) {
             for (LLResultTypes.FiducialResult fid : result.getFiducialResults()) {
                 if (Objects.equals(PARAMS.Alliance, "Blue")){
-                    if ((PARAMS.BLUE_AUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && PARAMS.audienceSide) || (PARAMS.BLUE_NOTAUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && !PARAMS.audienceSide)) {
-                        PARAMS.tip = true;
-                        break;
+                    if ((PARAMS.BLUE_AUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && audienceSide) || (PARAMS.BLUE_NOTAUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && !audienceSide)) {
+                        PARAMS.tip = false;
+                        return false;
+                        //break;
                     }
                 } else {
-                    if ((PARAMS.RED_AUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && PARAMS.audienceSide) || (PARAMS.RED_NOTAUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && !PARAMS.audienceSide)) {
-                        PARAMS.tip = true;
-                        break;
+                    if ((PARAMS.RED_AUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && audienceSide) || (PARAMS.RED_NOTAUD_TARGET_TAG_ID.contains(fid.getFiducialId()) && !audienceSide)) {
+                        PARAMS.tip = false;
+                        return false;
+                        //break;
                     }
 
                 }
             }
         }
+        return true;
 
     }
 
