@@ -181,6 +181,31 @@ public class SSMyRobot {
         }
     }
     public Action closeNectarGate() { return new CloseNectarGate(); }
+
+
+
+
+
+    public class LowerRamp implements Action {
+        @Override
+        public boolean run(@NonNull TelemetryPacket pack) {
+            intake.flower.setPosition(0.3);
+            return false;
+        }
+    }
+    public Action lowerRamp() { return new LowerRamp(); }
+
+
+    public class RaiseRamp implements Action {
+        @Override
+        public boolean run(@NonNull TelemetryPacket pack) {
+            intake.flower.setPosition(0.85);
+            return false;
+        }
+    }
+    public Action raiseRamp() { return new RaiseRamp(); }
+
+
     // ==========================================
     // ROBOT UPDATE ACTION
     // ==========================================

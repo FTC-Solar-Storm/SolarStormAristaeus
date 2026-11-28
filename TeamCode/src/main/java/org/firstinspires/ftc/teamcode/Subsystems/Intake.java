@@ -43,7 +43,7 @@ public final class Intake {
     public void moveGate(boolean gatebutton) {
         if (gatebutton) {
             if (gateUp) {
-                gate.setPosition(0.5);
+                gate.setPosition(0.4);
                 gateUp = !gateUp;
             } else {
                 gate.setPosition(0.2);
@@ -57,7 +57,7 @@ public final class Intake {
     public void moveFlower(boolean flowerbutton) {
         if (flowerbutton) {
             if (flowerUp) {
-                flower.setPosition(0.34);
+                flower.setPosition(0.3);
                 flowerUp = !flowerUp;
             } else {
                 flower.setPosition(0.85);

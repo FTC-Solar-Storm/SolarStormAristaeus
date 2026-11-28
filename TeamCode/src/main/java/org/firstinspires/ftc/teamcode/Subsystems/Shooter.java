@@ -710,9 +710,9 @@ public class Shooter {
 
         // CALCULATE FLYWHEEL TARGET SPEEDS
 
-        double leftSpeed = 2.09 * x + 1666.0;
+        double leftSpeed = 3.24 * x + 1637;
 
-        double rightSpeed = 3.24 * x + 1537.0;
+        double rightSpeed = 2.09 * x + 1766;
 
         // CALCULATE HOOD POSITIONS
 

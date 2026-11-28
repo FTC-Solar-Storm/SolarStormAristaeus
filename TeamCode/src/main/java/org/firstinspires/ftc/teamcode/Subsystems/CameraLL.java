@@ -38,7 +38,7 @@ public final class CameraLL {
 
     }
 
-    public boolean detectAprilTag() {
+    public boolean detectTip() {
         LLResult result = limelight.getLatestResult();
         if (result != null && result.isValid()) {
             for (LLResultTypes.FiducialResult fid : result.getFiducialResults()) {
@@ -61,5 +61,7 @@ public final class CameraLL {
         return true;
 
     }
+
+
 
 }
