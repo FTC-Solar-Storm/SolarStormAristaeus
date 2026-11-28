@@ -628,6 +628,7 @@ public class Shooter {
 
     }
 
+
     public boolean isHiveAlignActive() {
         return isHiveAlignActive;
     }

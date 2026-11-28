@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.Subsystems.CameraLL;
 import org.firstinspires.ftc.teamcode.Subsystems.Intake;
 import org.firstinspires.ftc.teamcode.Subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.TankDrive;
+import org.opencv.core.Mat;
 
 
 @Autonomous(name = "DominantHiveAuto", group = "Autonomous")
@@ -43,7 +44,8 @@ public class dominantHiveAuto extends LinearOpMode {
 
     private Pose2d backupFStart = new Pose2d(-21, 38.9, Math.toRadians(-139));
 
-    private Pose2d flowerReady = new Pose2d(-24, 36.9, Math.toRadians(100));
+    private Pose2d flowerReady = new Pose2d(-24, 40.9, Math.toRadians(95));
+    private Pose2d flowerFinish = new Pose2d(-34, 38.9, Math.toRadians(45));
 
     private Pose2d flowerIntake = new Pose2d(-24.5, 55, Math.toRadians(90));
     private Pose2d flowerOut = new Pose2d(-24.5, 49, Math.toRadians(90));
@@ -52,6 +54,12 @@ public class dominantHiveAuto extends LinearOpMode {
     private Pose2d aprilCheck = new Pose2d(-11, 47.7, Math.toRadians(51));
 
     private Pose2d checkPoint = new Pose2d(31, 30, Math.toRadians(-24));
+
+    private Pose2d secondShotPos = new Pose2d(61, 10, 0);
+
+    private Pose2d secondFlowerReady = new Pose2d(38, 21, Math.toRadians(0));
+    private Pose2d secondFlowerIntake = new Pose2d(57, 22.3, Math.toRadians(5));
+
 
 
 
@@ -70,7 +78,7 @@ public class dominantHiveAuto extends LinearOpMode {
 
         myRobot = new SSMyRobot(hardwareMap, drive, intake, shooter, startPose, camera);
 
-        intake.nectarGate.setPosition(0.9);
+        intake.nectarGate.setPosition(1.0);
         intake.gate.setPosition(0.4);
         camera.Alliance = "Blue";
         shooter.setHiveTarget(Shooter.HiveTarget.BLUE_HIVE_BOTTOM);
@@ -92,9 +100,9 @@ public class dominantHiveAuto extends LinearOpMode {
                                 myRobot.autoSetShooterFromDistance(),
                                 myRobot.spinFlywheels(),
                                 myRobot.openGate(),
-                                new SleepAction(2),
-                                myRobot.setIntakePower(0.6),
-                                new SleepAction(2),
+                                new SleepAction(0.8),
+                                myRobot.setIntakePower(0.7),
+                                new SleepAction(2.8),
                                 myRobot.setIntakePower(0.8),
                                 myRobot.closeGate(),
                                 drive.actionBuilder(drive.localizer.getPose())
@@ -151,7 +159,7 @@ public class dominantHiveAuto extends LinearOpMode {
                                         //.setReversed(true)
                                         //.splineTo(flowerReady.position, flowerReady.heading)
                                         .build(),
-                                new SleepAction(2)
+                                new SleepAction(1.3)
                         )
         );
 
@@ -163,7 +171,7 @@ public class dominantHiveAuto extends LinearOpMode {
                // new SequentialAction(
                         drive.actionBuilder(drive.localizer.getPose())
                                 .setReversed(true)
-                                .splineTo(flowerReady.position, Math.toRadians(-90), new TranslationalVelConstraint(15))
+                                .splineTo(flowerFinish.position, Math.toRadians(-135), new TranslationalVelConstraint(25))
                                 //.setReversed(false)
                                 //.splineTo(flowerIntake.position, flowerIntake.heading, new TranslationalVelConstraint(10))
                                 .build()
@@ -181,10 +189,12 @@ public class dominantHiveAuto extends LinearOpMode {
                 new SequentialAction(
                         drive.actionBuilder(drive.localizer.getPose())
 
-                                .splineTo(aprilCheck.position, aprilCheck.heading, new TranslationalVelConstraint(15))
+                                .splineTo(aprilCheck.position, aprilCheck.heading, new TranslationalVelConstraint(20))
 
                                 .build(),
-                        new SleepAction(2)
+                        //new SleepAction(0.5),
+                        //myRobot.raiseRamp(),
+                        myRobot.setIntakePower(0)
                 )
 
 
@@ -201,23 +211,98 @@ public class dominantHiveAuto extends LinearOpMode {
 
                     drive.actionBuilder(drive.localizer.getPose())
                             .setReversed(true)
-                            .splineTo(flowerReady.position, Math.toRadians(-140), new TranslationalVelConstraint(10))
-
+                            .splineTo(flowerReady.position, Math.toRadians(-140), new TranslationalVelConstraint(20))
+                            .splineTo(backup.position, Math.toRadians(180), new TranslationalVelConstraint(15))
+                            .setReversed(false)
+                            .splineTo(startPose.position, startPose.heading, new TranslationalVelConstraint(15))
                             .build()
 
 
             );
+
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
         } else  {
+            shooter.setHiveTarget(Shooter.HiveTarget.BLUE_HIVE_TOP);
+
             Actions.runBlocking(
+                    new SequentialAction(
+                            drive.actionBuilder(drive.localizer.getPose())
 
-                    drive.actionBuilder(drive.localizer.getPose())
+                                    .splineTo(checkPoint.position, checkPoint.heading, new TranslationalVelConstraint(40))
+                                    .splineTo(secondFlowerReady.position, secondFlowerReady.heading, new TranslationalVelConstraint(20))
+                                    .build(),
+                            myRobot.alignToHiveV2(),
+                            new SleepAction(0.1),
+                            myRobot.alignToHiveV2(),
+                            myRobot.autoSetShooterFromDistance(),
 
-                            .splineTo(checkPoint.position, checkPoint.heading, new TranslationalVelConstraint(10))
+                            myRobot.spinFlywheels(),
+                            //myRobot.lowerRamp(),
+                            myRobot.openGate(),
+                            new SleepAction(0.8),
+                            myRobot.setIntakePower(0.7),
+                            new SleepAction(1),
+                            myRobot.setIntakePower(0),
 
-                            .build()
+                            new SleepAction(1),
+                            myRobot.setIntakePower(0.8),
+                            new SleepAction(1),
+                            myRobot.closeGate()
+                            //myRobot.stopFlywheels()
+
+                    )
+
 
 
             );
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
+
+
+            Actions.runBlocking(
+                    new SequentialAction(
+                            drive.actionBuilder(drive.localizer.getPose())
+                                    .splineTo(secondFlowerIntake.position, secondFlowerIntake.heading, new TranslationalVelConstraint(15))
+                                    .build(),
+                            new SleepAction(1)
+
+
+                    )
+
+            );
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
+
+            Actions.runBlocking(
+                    new SequentialAction(
+
+                            //drive.actionBuilder(drive.localizer.getPose())
+                            //        .setReversed(true)
+                            //        .splineTo(secondFlowerReady.position, Math.toRadians(-170), new TranslationalVelConstraint(15))
+                            //        .build(),
+                            //new SleepAction(1)
+                            myRobot.alignToHiveV2(),
+                            new SleepAction(0.1),
+                            myRobot.alignToHiveV2(),
+                            myRobot.autoSetShooterFromDistance(),
+
+                            myRobot.spinFlywheels(),
+                            myRobot.openGate(),
+                            //new SleepAction(0.8),
+                            myRobot.setIntakePower(0.7),
+                            new SleepAction(3),
+                            myRobot.setIntakePower(0.8),
+                            myRobot.closeGate(),
+                            myRobot.stopFlywheels(),
+                            myRobot.lowerRamp()
+
+
+                    )
+
+            );
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
         }
 
 

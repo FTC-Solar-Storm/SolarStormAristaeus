@@ -130,6 +130,33 @@ public class SSMyRobot {
     public Action alignToHive(Shooter.HiveTarget target) { return new AlignToHive(target); }
     public Action alignToHive() { return new AlignToHive(); }
 
+
+
+
+
+
+    public class AlignToHiveV2 implements Action {
+        private boolean firstRun = true;
+        private final Shooter.HiveTarget target;
+
+
+
+        public AlignToHiveV2() {
+            this.target = shooter.getSelectedHiveTarget();
+        }
+
+        @Override
+        public boolean run(@NonNull TelemetryPacket pack) {
+
+            shooter.hiveAutoAlign();
+
+
+            return false;
+        }
+    }
+
+    public Action alignToHiveV2() { return new AlignToHiveV2(); }
+
     // ==========================================
     // INTAKE ACTIONS
     // ==========================================
