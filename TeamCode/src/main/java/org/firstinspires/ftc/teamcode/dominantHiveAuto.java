@@ -59,8 +59,11 @@ public class dominantHiveAuto extends LinearOpMode {
 
     private Pose2d secondFlowerReady = new Pose2d(38, 21, Math.toRadians(1));
     private Pose2d secondFlowerIntake = new Pose2d(57, 22.3, Math.toRadians(5));
+    private Pose2d secondFlowerOut = new Pose2d(54, 21.3, Math.toRadians(5));
 
+    private Pose2d secondFlowerReverse = new Pose2d(40, 12, Math.toRadians(90));
 
+    private Pose2d park = new Pose2d(40, 45, Math.toRadians(90));
 
 
 
@@ -117,7 +120,7 @@ public class dominantHiveAuto extends LinearOpMode {
                                         //.turn(77+5)
                                         .build(),
 
-                                myRobot.setIntakePower(0.5),
+                                myRobot.setIntakePower(0.4),
                                 myRobot.stopFlywheels()
 
                         )
@@ -159,7 +162,7 @@ public class dominantHiveAuto extends LinearOpMode {
                                         //.setReversed(true)
                                         //.splineTo(flowerReady.position, flowerReady.heading)
                                         .build(),
-                                new SleepAction(1.3)
+                                new SleepAction(1)
                         )
         );
 
@@ -206,6 +209,11 @@ public class dominantHiveAuto extends LinearOpMode {
         AutoInfoStorage.autoEndPose = drive.localizer.getPose();
         camera.audienceSide = false;
 
+
+
+        //==================================================================================================
+        //==================================================================================================
+        //==========================================IF STATEMENT========================================================
         if (!camera.detectTip()) {
             Actions.runBlocking(
 
@@ -222,7 +230,9 @@ public class dominantHiveAuto extends LinearOpMode {
 
             drive.updatePoseEstimate();
             AutoInfoStorage.autoEndPose = drive.localizer.getPose();
-        } else  {
+            //==========================================================================================================================================
+        } else  { //===============================================================================================================================
+            //============================================================================================================================================
             shooter.setHiveTarget(Shooter.HiveTarget.BLUE_HIVE_TOP);
 
             Actions.runBlocking(
@@ -235,8 +245,9 @@ public class dominantHiveAuto extends LinearOpMode {
                             myRobot.alignToHiveV2(),
                             new SleepAction(0.1),
                             myRobot.alignToHiveV2(),
-                            new SleepAction(0.1),
+                           // new SleepAction(0.1),
                             myRobot.autoSetShooterFromDistance(),
+
 
                             myRobot.spinFlywheels(),
                             //myRobot.lowerRamp(),
@@ -244,11 +255,11 @@ public class dominantHiveAuto extends LinearOpMode {
                             new SleepAction(0.9),
                             myRobot.setIntakePower(0.7),
                             new SleepAction(1),
-                            myRobot.setIntakePower(0),
+                            myRobot.setIntakePower(0.2),
 
-                            new SleepAction(1),
+                            new SleepAction(0.8),
                             myRobot.setIntakePower(0.8),
-                            new SleepAction(1),
+                            new SleepAction(1.2),
                             myRobot.closeGate()
                             //myRobot.stopFlywheels()
 
@@ -275,6 +286,26 @@ public class dominantHiveAuto extends LinearOpMode {
             drive.updatePoseEstimate();
             AutoInfoStorage.autoEndPose = drive.localizer.getPose();
 
+
+            Actions.runBlocking(
+                    //new SequentialAction(
+                            drive.actionBuilder(drive.localizer.getPose())
+                                    .setReversed(true)
+                                    .splineTo(secondFlowerOut.position, secondFlowerOut.heading.toDouble() + Math.PI, new TranslationalVelConstraint(20))
+                                    .build()
+
+
+
+                    //)
+
+            );
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
+            telemetry.addData("X: ", drive.localizer.getPose().position.x);
+            telemetry.addData("Y: ", drive.localizer.getPose().position.y);
+            telemetry.addData("Heading: ", Math.toDegrees(drive.localizer.getPose().heading.toDouble()));
+            telemetry.update();
+
             Actions.runBlocking(
                     new SequentialAction(
 
@@ -286,19 +317,61 @@ public class dominantHiveAuto extends LinearOpMode {
                             myRobot.alignToHiveV2(),
                             new SleepAction(0.1),
                             myRobot.alignToHiveV2(),
-                            new SleepAction(0.1),
+                            //new SleepAction(0.1),
 
                             myRobot.autoSetShooterFromDistance(),
 
+
                             myRobot.spinFlywheels(),
                             myRobot.openGate(),
-                            //new SleepAction(0.8),
+                            new SleepAction(0.5),
+
                             myRobot.setIntakePower(0.7),
-                            new SleepAction(3),
+                            new SleepAction(1),
+                            myRobot.setIntakePower(0.2),
+
+                            new SleepAction(0.8),
                             myRobot.setIntakePower(0.8),
+                            new SleepAction(1.5),
                             myRobot.closeGate(),
                             myRobot.stopFlywheels(),
                             myRobot.lowerRamp()
+
+
+                    )
+
+            );
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
+            Actions.runBlocking(
+                    new SequentialAction(
+
+                            drive.actionBuilder(drive.localizer.getPose())
+                                    .setReversed(true)
+                                    .splineTo(secondFlowerReverse.position, Math.toRadians(180)+secondFlowerReverse.heading.toDouble(), new TranslationalVelConstraint(30))
+                                    .build(),
+                            myRobot.raiseRamp()
+
+
+
+                    )
+
+            );
+
+
+            drive.updatePoseEstimate();
+            AutoInfoStorage.autoEndPose = drive.localizer.getPose();
+            telemetry.addData("X: ", drive.localizer.getPose().position.x);
+            telemetry.addData("Y: ", drive.localizer.getPose().position.y);
+            telemetry.addData("Heading: ", Math.toDegrees(drive.localizer.getPose().heading.toDouble()));
+            telemetry.update();
+            Actions.runBlocking(
+                    new SequentialAction(
+                            new SleepAction(0.5),
+                            drive.actionBuilder(drive.localizer.getPose())
+                                    .splineTo(park.position, park.heading)
+                                    .build()
+
 
 
                     )
