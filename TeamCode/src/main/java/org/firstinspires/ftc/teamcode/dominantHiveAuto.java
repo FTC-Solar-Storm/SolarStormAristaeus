@@ -57,7 +57,7 @@ public class dominantHiveAuto extends LinearOpMode {
 
     private Pose2d secondShotPos = new Pose2d(61, 10, 0);
 
-    private Pose2d secondFlowerReady = new Pose2d(38, 21, Math.toRadians(0));
+    private Pose2d secondFlowerReady = new Pose2d(38, 21, Math.toRadians(1));
     private Pose2d secondFlowerIntake = new Pose2d(57, 22.3, Math.toRadians(5));
 
 
@@ -235,12 +235,13 @@ public class dominantHiveAuto extends LinearOpMode {
                             myRobot.alignToHiveV2(),
                             new SleepAction(0.1),
                             myRobot.alignToHiveV2(),
+                            new SleepAction(0.1),
                             myRobot.autoSetShooterFromDistance(),
 
                             myRobot.spinFlywheels(),
                             //myRobot.lowerRamp(),
                             myRobot.openGate(),
-                            new SleepAction(0.8),
+                            new SleepAction(0.9),
                             myRobot.setIntakePower(0.7),
                             new SleepAction(1),
                             myRobot.setIntakePower(0),
@@ -285,6 +286,8 @@ public class dominantHiveAuto extends LinearOpMode {
                             myRobot.alignToHiveV2(),
                             new SleepAction(0.1),
                             myRobot.alignToHiveV2(),
+                            new SleepAction(0.1),
+
                             myRobot.autoSetShooterFromDistance(),
 
                             myRobot.spinFlywheels(),
