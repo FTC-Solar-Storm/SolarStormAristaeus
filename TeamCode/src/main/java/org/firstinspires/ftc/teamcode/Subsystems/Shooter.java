@@ -718,7 +718,9 @@ public class Shooter {
         // CALCULATE HOOD POSITIONS
 
         double leftHoodPos = clamp(
-                1.71 -0.245 * Math.log(x)+0.1, //add 0.1 offset 11/21
+                //1.71 -0.245 * Math.log(x)+0.1, //add 0.1 offset 11/21
+                1.75 -0.254 * Math.log(x)+0.1,
+
                 0.0,
                 1.0
         );
